@@ -49,7 +49,8 @@ class _FoldersPageState extends State<FoldersPage> {
             itemCount: folders?.length,
             itemBuilder: (context, index) {
               var folderId = folders![index].id;
-              var label = folders![index].name;
+              var label = folders![index].version == null ? folders![index].name : folders![index].name + " (" + folders![index].version! + ")" ;
+
               return
                 Container(
                   child: ListTile(

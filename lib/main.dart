@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import 'package:musebiachl/model/api/folder.dart';
 import 'package:musebiachl/model/api/musician.dart';
 import 'package:musebiachl/model/api/folder_composition.dart';
@@ -10,6 +9,7 @@ import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/view/folders_page.dart';
 import 'package:musebiachl/view/folder_page.dart';
 import 'package:musebiachl/view/score_page.dart';
+import 'package:musebiachl/view/home_page.dart';
 
 void main() =>  runApp(const MyApp());
 
@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const FoldersPage(),
+      home: const HomePage(),
     );
   }
 }

@@ -45,7 +45,6 @@ class _FolderPage extends State<FolderPage> {
     compositions = await RemoteServices().getFolderCompositions(widget.id);
     if (compositions != null) {
       setState(() {
-        print(compositions);
         isLoaded = true;
       });
     }
@@ -55,7 +54,6 @@ class _FolderPage extends State<FolderPage> {
 
   @override
   Widget build(BuildContext context) {
-    print(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.name),
@@ -88,7 +86,7 @@ class _FolderPage extends State<FolderPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Text('Loading Musicians from API'),
+              Text('Loading Noten from API'),
               SizedBox(height: 10.0),
               CircularProgressIndicator()
             ],

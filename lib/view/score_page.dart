@@ -14,9 +14,11 @@ class ScorePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // old path http://localhost:8080/muse/
+    https://klenig.at/muse
     return Container(
         child: PhotoView(
-          imageProvider: NetworkImage('http://localhost:8080/muse/file/image/' + id.toString()),
+          imageProvider: NetworkImage('https://klenig.at/muse/file/image/' + id.toString()),
         )
     );
   }
