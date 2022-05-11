@@ -64,9 +64,20 @@ class _FolderPage extends State<FolderPage> {
         child: ListView.builder(
             itemCount: compositions?.length,
             itemBuilder: (context, index) {
+              
 
-              int fileId = compositions![index].scoreParts[0].imageId;
-              var label = compositions![index].compositionLabel + " - " + fileId.toString();
+              var result = compositions![index].scoreParts.where((item){
+                return item.imageId != 0 && item.primaryInstrument;
+              });
+              List validScores = result.toList();
+
+              int fileId = 0;
+              var label = compositions![index].compositionLabel;
+              if(validScores.length > 0) {
+                fileId = validScores[0].imageId;
+                label = compositions![index].compositionLabel + " - " + validScores[0].instrumentLabel;
+              }
+             
               return
                 Container(
                   child: ListTile(

@@ -36,17 +36,23 @@ class ScorePart {
   ScorePart({
     required this.id,
     required this.imageId,
-    this.instrumentLabel
+    this.instrumentLabel,
+    required this.primaryInstrument,
+    required this.optionalInstrument,
   });
 
   int id;
   int imageId;
   String? instrumentLabel;
+  bool primaryInstrument;
+  bool optionalInstrument;
 
   factory ScorePart.fromJson(Map<String, dynamic> json) => ScorePart(
     id: json["id"],
     imageId: json["imageId"],
     instrumentLabel: json["instrumentLabel"],
+    primaryInstrument: json["primaryInstrument"],
+    optionalInstrument: json["optionalInstrument"],
   );
 
   Map<String, dynamic> toJson() => {

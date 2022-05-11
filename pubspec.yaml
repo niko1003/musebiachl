@@ -37,6 +37,7 @@ dependencies:
   http: ^0.13.4
   photo_view: ^0.13.0
   elastic_drawer: ^2.0.2
+  accordion: ^2.3.0
 
 dev_dependencies:
   flutter_test:
