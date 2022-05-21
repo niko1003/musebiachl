@@ -5,6 +5,7 @@ import 'package:musebiachl/model/api/folder_composition.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/view/score_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // A Widget that accepts the necessary arguments via the constructor.
 
@@ -29,6 +30,8 @@ class _FolderPage extends State<FolderPage> {
 
   //List to store post data
   List<FolderComposition>? compositions;
+  
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   //boolean to trigger if loaded
   var isLoaded = false;
@@ -42,9 +45,17 @@ class _FolderPage extends State<FolderPage> {
 
   //function to get Data from API
   getData() async {
-    compositions = await RemoteServices().getFolderCompositions(widget.id);
+
+    int musicianId = await _prefs.then((SharedPreferences prefs) {
+      return prefs.getInt('musicianId') ?? 11;
+    });
+
+    if(musicianId != null) {
+      compositions = await RemoteServices().getFolderCompositions(musicianId, widget.id);
+    }
+
     if (compositions != null) {
-      setState(() {
+        setState(() {
         isLoaded = true;
       });
     }
@@ -66,11 +77,30 @@ class _FolderPage extends State<FolderPage> {
             itemBuilder: (context, index) {
             
               int fileId = compositions![index].imageId;
-              var label = compositions![index].compositionLabel + " - " + compositions![index].instrumentLabel + " - " + fileId.toString();
-             
-              return
-                Container(
-                  child: ListTile(
+              int scoreId = compositions![index].scoreId;
+              var label = compositions![index].compositionLabel;
+              var instrumentLabel = compositions![index].instrumentLabel;
+              int folderOrdering = compositions![index].folderOrdering;
+
+              
+              String subtitle = compositions![index].scoreNotes == null ? 
+                instrumentLabel : 
+                instrumentLabel + " - " + compositions![index].scoreNotes!;
+
+
+              var listTile;
+              if(fileId == 0) {
+                  listTile = ListTile(
+                    leading: CircleAvatar(
+                        backgroundColor: Colors.blueGrey,
+                        child: Text(folderOrdering.toString()),
+                      ),
+                    title: Text(label),
+                    enabled: false
+                  );
+              } else {
+                  listTile = ListTile(
+                    enabled: true,
                     onTap: () => Navigator.pushNamed(
                       context,
                       ScorePage.routeName,
@@ -78,8 +108,17 @@ class _FolderPage extends State<FolderPage> {
                         fileId,
                       ),
                     ),
+                     leading: CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Text(folderOrdering.toString()),
+                      ),
                     title: Text(label),
-                  ),
+                    subtitle: Text(subtitle),
+                  );
+              }
+              return
+                Container(
+                  child: listTile
                 );
             }
         ),

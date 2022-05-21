@@ -13,9 +13,10 @@ class RemoteServices {
 
   String baseUrl = 'https://klenig.at/muse';
 
-  Future<List<FolderComposition>?> getFolderCompositions(int folderId) async {
+  Future<List<FolderComposition>?> getFolderCompositions(int musicianId, int folderId) async {
 
-    var uri = Uri.parse(baseUrl + '/app/folder/' + folderId.toString() + '/find-for-musician?musicianId=' + Constants.selectedMusicianId.toString()); 
+
+    var uri = Uri.parse(baseUrl + '/app/folder/' + folderId.toString() + '/find-for-musician?musicianId=' + musicianId.toString()); 
     var response = await client.get(uri);
 
     //Check for response

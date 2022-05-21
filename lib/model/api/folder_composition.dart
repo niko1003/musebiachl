@@ -16,10 +16,14 @@ class FolderComposition {
     required this.instrumentLabel,
     required this.primaryInstrument,
     required this.optionalInstrument,
+    required this.folderOrdering,
+    required this.page,
+    this.scoreNotes,
   });
 
   int musicianId;
   String compositionLabel;
+  String? scoreNotes;
   
   int scoreId;
   int imageId;
@@ -27,6 +31,9 @@ class FolderComposition {
   String instrumentLabel;
   bool primaryInstrument;
   bool optionalInstrument;
+
+  int folderOrdering;
+  int page;
 
   factory FolderComposition.fromJson(Map<String, dynamic> json) => FolderComposition(
     musicianId: json["musicianId"],
@@ -37,6 +44,9 @@ class FolderComposition {
     instrumentLabel: json["instrumentLabel"],
     primaryInstrument: json["primaryInstrument"],
     optionalInstrument: json["optionalInstrument"],
+    folderOrdering: json["folderOrdering"],
+    page: json["page"],
+    scoreNotes: json["scoreNotes"],
   );
 
   Map<String, dynamic> toJson() => {

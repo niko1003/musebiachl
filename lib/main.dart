@@ -57,6 +57,7 @@ class MyApp extends StatelessWidget {
       },
 
       theme: ThemeData(
+        fontFamily: 'Roboto',
         primarySwatch: Colors.blue,
       ),
       home: const HomePage(),

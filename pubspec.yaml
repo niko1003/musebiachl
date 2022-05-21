@@ -38,6 +38,8 @@ dependencies:
   photo_view: ^0.13.0
   elastic_drawer: ^2.0.2
   accordion: ^2.3.0
+  cached_network_image: ^3.2.0
+  shared_preferences: ^2.0.15
 
 dev_dependencies:
   flutter_test:
@@ -91,3 +93,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+fonts:
+  - family: Roboto
+    fonts:
+      - asset: fonts/Roboto-Regular.ttf
