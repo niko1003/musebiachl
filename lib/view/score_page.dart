@@ -24,6 +24,7 @@ class _ScorePageState extends State<ScorePage> {
   @override
   void initState() {
     super.initState();
+    scaleStateController = PhotoViewScaleStateController();
   }
 
   @override
@@ -50,8 +51,13 @@ class _ScorePageState extends State<ScorePage> {
               minScale: PhotoViewComputedScale.contained * 0.8,
               maxScale: PhotoViewComputedScale.covered * 1.8,
               initialScale: PhotoViewComputedScale.contained,
-              basePosition: Alignment.center
+              basePosition: Alignment.center,
+              scaleStateController: scaleStateController,
             )
+        ), 
+        FlatButton(
+          child: Text("Go to original size"),
+          onPressed: goBack
         )
       ],
     );
