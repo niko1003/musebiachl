@@ -59,7 +59,7 @@ class _UsersPageState extends State<UsersPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Musiker auswählen.'),
+        title: const Text('Musiker:in auswählen.'),
         centerTitle: true,
       ),
       body: Visibility(
