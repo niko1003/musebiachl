@@ -5,7 +5,10 @@ import 'package:musebiachl/view/users_page.dart';
 
 //
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+
+  final String authToken;
+
+  const HomePage({Key? key, required this.authToken}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -29,7 +32,7 @@ class _HomePageState extends State<HomePage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.account_circle),
-            label: 'Musiker:innen',
+            label: 'Musiker:innen'
           ),
            BottomNavigationBarItem(
             label: 'Konzertmappen',

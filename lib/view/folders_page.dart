@@ -39,6 +39,7 @@ class _FoldersPageState extends State<FoldersPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+
         title: const Text('Mappe auswählen.'),
         centerTitle: true,
       ),

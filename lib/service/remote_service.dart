@@ -12,6 +12,19 @@ class RemoteServices {
   var client = http.Client();
 
   String baseUrl = 'https://klenig.at/muse';
+ // String baseUrl = 'http://localhost:8080/muse';
+
+  Future<dynamic> login(String username, String password) async {
+
+    //  var uri = Uri.parse(baseUrl + 'auth/login?username='+username+'&password='+password); 
+    //  var response = await client.post(uri);
+    getMusicians();
+    return {
+      'authToken' : '5446734f-dde7-4ab9-a430-792725655f0f',
+      'message': "Login sucessful.",
+      "errorCode": null
+    };
+  }
 
   Future<List<FolderComposition>?> getFolderCompositions(int musicianId, int folderId) async {
 
