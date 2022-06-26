@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'dart:async';
 import 'package:musebiachl/model/api/musician.dart';
-import 'package:musebiachl/model/constants.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,9 +49,6 @@ class _UsersPageState extends State<UsersPage> {
         isLoaded = true;
       });
     }
-
-
-
   }
 
   @override

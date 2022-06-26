@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:musebiachl/model/api/folder.dart';
 import 'package:musebiachl/model/api/musician.dart';
 import 'package:musebiachl/model/api/folder_composition.dart';
-import 'package:musebiachl/model/constants.dart';
 
 //Class to make Network Calls
 class RemoteServices {
