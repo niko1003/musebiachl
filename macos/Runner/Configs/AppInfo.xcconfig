@@ -8,7 +8,7 @@
 PRODUCT_NAME = musebiachl
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = org.klenig.muse.musebiachl
+PRODUCT_BUNDLE_IDENTIFIER = org.klenig.musebiachl
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2022 com.example. All rights reserved.
