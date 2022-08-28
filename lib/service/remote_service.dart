@@ -1,35 +1,61 @@
 import 'package:http/http.dart' as http;
+import 'package:musebiachl/auth_main.dart';
 import 'dart:convert';
 
+import 'package:musebiachl/model/api/auth_token.dart';
 import 'package:musebiachl/model/api/folder.dart';
 import 'package:musebiachl/model/api/musician.dart';
 import 'package:musebiachl/model/api/folder_composition.dart';
+import 'package:musebiachl/model/api/server_exception.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 //Class to make Network Calls
 class RemoteServices {
+
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  
   //setup http client to handle multiple request
   var client = http.Client();
 
   String baseUrl = 'https://klenig.at/muse';
- // String baseUrl = 'http://localhost:8080/muse';
 
-  Future<dynamic> login(String username, String password) async {
+  persistAuthToken(AuthToken authToken) async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.setString("token", authToken.token);
+  }
 
-    //  var uri = Uri.parse(baseUrl + 'auth/login?username='+username+'&password='+password); 
-    //  var response = await client.post(uri);
-    getMusicians();
-    return {
-      'authToken' : '5446734f-dde7-4ab9-a430-792725655f0f',
-      'message': "Login sucessful.",
-      "errorCode": null
-    };
+  clearAuthToken() async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.remove("token");
+  }
+
+  Future<AuthToken> login(String username, String password) async {
+    await clearAuthToken();
+    var uri = Uri.parse(baseUrl + '/auth/token?username=' + username + "&password=" + password); 
+    var response = await client.post(uri);
+    var json = utf8.decode(response.bodyBytes);
+    if(response.statusCode == 200) {
+      AuthToken authToken =  authTokenFromJson(json);
+      persistAuthToken(authToken);
+      return authToken;
+    }
+
+    ServerException serverException = serverExceptionFromJson(json);
+    throw Exception(serverException.message);
+  }
+
+  Future<Map<String, String>> getHeaders() async {
+    final SharedPreferences prefs = await _prefs;
+    String t =  prefs.getString("token") ?? "xxx";
+    return {"x-muse-token" : t};
   }
 
   Future<List<FolderComposition>?> getFolderCompositions(int musicianId, int folderId) async {
-
-
+    
     var uri = Uri.parse(baseUrl + '/app/folder/' + folderId.toString() + '/find-for-musician?musicianId=' + musicianId.toString()); 
-    var response = await client.get(uri);
+    
+    var response = await client.get(uri, headers: await getHeaders());
 
     //Check for response
     if (response.statusCode == 200) {
@@ -43,7 +69,7 @@ class RemoteServices {
   Future<List<Musician>?> getMusicians() async {
     //setup http client
     var uri = Uri.parse(baseUrl + '/app/musician');
-    var response = await client.get(uri);
+    var response = await client.get(uri, headers: await getHeaders());
 
     //Check for response
     if (response.statusCode == 200) {
@@ -58,7 +84,7 @@ class RemoteServices {
   Future<List<Folder>?> getFolders() async {
     //setup http client
     var uri = Uri.parse(baseUrl + '/app/folder/');
-    var response = await client.get(uri);
+    var response = await client.get(uri, headers: await getHeaders());
 
     //Check for response
     if (response.statusCode == 200) {

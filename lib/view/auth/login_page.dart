@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:musebiachl/model/api/auth_token.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/view/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +13,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -23,17 +23,16 @@ class _LoginPageState extends State<LoginPage> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   String authToken = '';
 
-   persistToken(String paramAuthToken) async {
-        final SharedPreferences prefs = await _prefs;
-        await prefs.setString('authToken', paramAuthToken);
-        authToken = paramAuthToken;
-    }
+  persistToken(String paramAuthToken) async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.setString('authToken', paramAuthToken);
+    authToken = paramAuthToken;
+  }
 
- @override
+  @override
   void initState() {
     super.initState();
     getData();
-  
   }
 
   //function to get Data from API
@@ -44,40 +43,38 @@ class _LoginPageState extends State<LoginPage> {
 
     // TODO get user from API -> if that not null.
 
-    if(!authToken.isEmpty) {
-         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => HomePage(authToken: authToken)));
-    }
+    // if(!authToken.isEmpty) {
+    //       Navigator.pushReplacement(
+    //          context,
+    //        MaterialPageRoute(
+    //            builder: (context) => HomePage(authToken: authToken)));
+    //}
   }
 
   Future<void> login() async {
-   
+    remoteService.login(
+      emailController.text,
+      passwordController.text,
+    );
 
-      dynamic res = await remoteService.login(
+    try {
+      AuthToken authToken = await remoteService.login(
         emailController.text,
         passwordController.text,
       );
 
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => HomePage(authToken: authToken.token)));
+
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-      if (res['errorCode'] == null) {
-        String curAuthToken = res['authToken'];
-
-        persistToken(curAuthToken);
-
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => HomePage(authToken: curAuthToken)));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: ${res['message']}'),
-          backgroundColor: Colors.red.shade300,
-        ));
-      }
-    
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: Colors.red.shade300,
+      ));
+    }
   }
 
   bool isVisible = true;
@@ -155,7 +152,9 @@ class _LoginPageState extends State<LoginPage> {
                                 isVisible = !isVisible;
                                 setState(() {});
                               },
-                              child: Icon(isVisible ? Icons.visibility : Icons.visibility_off)),
+                              child: Icon(isVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off)),
                           hintText: 'type your password',
                           labelText: 'Password',
                           border: OutlineInputBorder(
@@ -167,11 +166,12 @@ class _LoginPageState extends State<LoginPage> {
                       height: 16,
                     ),
                     ElevatedButton(
-                        onPressed: login, 
+                        onPressed: login,
                         child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            child: Text('Submit'),
-                    ))
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          child: Text('Submit'),
+                        ))
                   ],
                 ),
               ),
