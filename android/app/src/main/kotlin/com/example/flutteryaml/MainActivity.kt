@@ -1,4 +1,4 @@
-package org.klenig.muse.musebiachl
+package com.example.flutteryaml
 
 import io.flutter.embedding.android.FlutterActivity
 
