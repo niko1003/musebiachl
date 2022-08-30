@@ -12,13 +12,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 //Class to make Network Calls
 class RemoteServices {
-
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  
+
   //setup http client to handle multiple request
   var client = http.Client();
 
   String baseUrl = 'https://klenig.at/muse';
+  String localToken = 'not-set';
 
   persistAuthToken(AuthToken authToken) async {
     final SharedPreferences prefs = await _prefs;
@@ -32,11 +32,13 @@ class RemoteServices {
 
   Future<AuthToken> login(String username, String password) async {
     await clearAuthToken();
-    var uri = Uri.parse(baseUrl + '/auth/token?username=' + username + "&password=" + password); 
+    var uri = Uri.parse(
+        baseUrl + '/auth/token?username=' + username + "&password=" + password);
     var response = await client.post(uri);
     var json = utf8.decode(response.bodyBytes);
-    if(response.statusCode == 200) {
-      AuthToken authToken =  authTokenFromJson(json);
+    if (response.statusCode == 200) {
+      AuthToken authToken = authTokenFromJson(json);
+      localToken = authToken.token;
       persistAuthToken(authToken);
       return authToken;
     }
@@ -47,22 +49,24 @@ class RemoteServices {
 
   Future<Map<String, String>> getHeaders() async {
     final SharedPreferences prefs = await _prefs;
-    String t =  prefs.getString("token") ?? "xxx";
-    return {"x-muse-token" : t};
+    String t = prefs.getString("token") ?? localToken;
+    return {"x-muse-token": t};
   }
 
-  Future<List<FolderComposition>?> getFolderCompositions(int musicianId, int folderId) async {
-    
-    var uri = Uri.parse(baseUrl + '/app/folder/' + folderId.toString() + '/find-for-musician?musicianId=' + musicianId.toString()); 
-    
+  Future<List<FolderComposition>?> getFolderCompositions(
+      int musicianId, int folderId) async {
+    var uri = Uri.parse(baseUrl +
+        '/app/folder/' +
+        folderId.toString() +
+        '/find-for-musician?musicianId=' +
+        musicianId.toString());
+
     var response = await client.get(uri, headers: await getHeaders());
 
     //Check for response
     if (response.statusCode == 200) {
       var json = utf8.decode(response.bodyBytes);
       return folderCompositionFromJson(json);
-    } else {
-      print('${response.statusCode}');
     }
   }
 
@@ -75,11 +79,8 @@ class RemoteServices {
     if (response.statusCode == 200) {
       var x = utf8.decode(response.bodyBytes);
       return musicansFromJson(x);
-    } else {
-      print('${response.statusCode}');
     }
   }
-
 
   Future<List<Folder>?> getFolders() async {
     //setup http client
@@ -94,5 +95,4 @@ class RemoteServices {
       print('${response.statusCode}');
     }
   }
-
 }

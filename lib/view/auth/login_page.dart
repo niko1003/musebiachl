@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:musebiachl/model/api/auth_token.dart';
 import 'package:musebiachl/service/remote_service.dart';
@@ -109,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                       height: 50,
                     ),
                     Text(
-                      'Sign Up',
+                      'Login',
                       style:
                           TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     ),

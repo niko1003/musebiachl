@@ -1,34 +1,23 @@
 import 'package:flutter/material.dart';
 
-import 'package:musebiachl/model/api/folder.dart';
-import 'package:musebiachl/model/api/musician.dart';
-import 'package:musebiachl/model/api/folder_composition.dart';
 import 'package:musebiachl/model/arg/folder_arguments.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
-import 'package:musebiachl/service/remote_service.dart';
-import 'package:musebiachl/view/folders_page.dart';
 import 'package:musebiachl/view/folder_page.dart';
 import 'package:musebiachl/view/score_page.dart';
-import 'package:musebiachl/view/home_page.dart';
 import 'package:musebiachl/view/auth/login_page.dart';
 
-void main() =>  runApp(const MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
-  
   const MyApp({Key? key}) : super(key: key);
-
-
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Muse Biachl',
-
       onGenerateRoute: (settings) {
         // If you push the PassArguments route
         if (settings.name == FolderPage.routeName) {
-
           // Cast the arguments to the correct type: ScreenArguments.
           final args = settings.arguments as FolderArguments;
 
@@ -44,13 +33,10 @@ class MyApp extends StatelessWidget {
             },
           );
         } else if (settings.name == ScorePage.routeName) {
-
           final args = settings.arguments as ScoreArguments;
           return MaterialPageRoute(
             builder: (context) {
-              return ScorePage(
-                  id: args.id
-              );
+              return ScorePage(id: args.id);
             },
           );
         }
@@ -58,7 +44,6 @@ class MyApp extends StatelessWidget {
         assert(false, 'Need to implement ${settings.name}');
         return null;
       },
-
       theme: ThemeData(
         fontFamily: 'Roboto',
         primarySwatch: Colors.blue,
