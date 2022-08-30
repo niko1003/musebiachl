@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import 'dart:async';
 import 'package:musebiachl/model/api/musician.dart';
 import 'package:musebiachl/service/remote_service.dart';
@@ -20,7 +19,7 @@ class _UsersPageState extends State<UsersPage> {
 
   //boolean to trigger if loaded
   var isLoaded = false;
-  
+
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   int musicianId = 11;
 
@@ -34,7 +33,6 @@ class _UsersPageState extends State<UsersPage> {
   void initState() {
     super.initState();
     getData();
-  
   }
 
   //function to get Data from API
@@ -61,41 +59,46 @@ class _UsersPageState extends State<UsersPage> {
       body: Visibility(
         visible: isLoaded,
         child: ListView.builder(
-          itemCount: user?.length,
-          itemBuilder: (context, index) {
-            var userId = user![index].id;
-            var label = user![index].firstName + " " + user![index].name;
-            var subtitle = user![index].instruments.map((item) => item.label).join(", ");
+            itemCount: user?.length,
+            itemBuilder: (context, index) {
+              var userId = user![index].id;
+              var label = user![index].firstName + " " + user![index].name;
+              var subtitle =
+                  user![index].instruments.map((item) => item.label).join(", ");
 
-            if (user![index].optionalInstruments.length > 0) {
-              subtitle = subtitle + " | " + user![index].optionalInstruments.map((item) => item.label).join(", ");
-            }
+              if (user![index].optionalInstruments.isNotEmpty) {
+                subtitle = subtitle +
+                    " | " +
+                    user![index]
+                        .optionalInstruments
+                        .map((item) => item.label)
+                        .join(", ");
+              }
 
-             return 
-              Container(
-                color: (musicianId == userId) ? Colors.blue.withOpacity(0.5) : Colors.transparent,
+              return Container(
+                color: (musicianId == userId)
+                    ? Colors.blue.withOpacity(0.5)
+                    : Colors.transparent,
                 child: ListTile(
                   onTap: () async {
-
-                        setState(() {
-                          musicianId = userId;
-                        });
-                      persistMusicianId(userId);
-                      
-                    },
-                 
+                    setState(() {
+                      musicianId = userId;
+                    });
+                    persistMusicianId(userId);
+                  },
                   title: Text(label),
-                    subtitle: Text(subtitle),
+                  subtitle: Text(subtitle),
                 ),
               );
-          }
-        ),
+            }),
         replacement: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Text('Loading Musicians from API', 
-                style: TextStyle(fontFamily: 'Roboto'),),
+              Text(
+                'Loading Musicians from API',
+                style: TextStyle(fontFamily: 'Roboto'),
+              ),
               SizedBox(height: 10.0),
               CircularProgressIndicator()
             ],
