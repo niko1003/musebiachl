@@ -1,5 +1,4 @@
 import 'package:http/http.dart' as http;
-import 'package:musebiachl/auth_main.dart';
 import 'dart:convert';
 
 import 'package:musebiachl/model/api/auth_token.dart';
@@ -31,7 +30,6 @@ class RemoteServices {
   }
 
   Future<AuthToken> login(String username, String password) async {
-    await clearAuthToken();
     var uri = Uri.parse(
         baseUrl + '/auth/token?username=' + username + "&password=" + password);
     var response = await client.post(uri);
@@ -40,6 +38,7 @@ class RemoteServices {
       AuthToken authToken = authTokenFromJson(json);
       localToken = authToken.token;
       persistAuthToken(authToken);
+
       return authToken;
     }
 
@@ -67,6 +66,8 @@ class RemoteServices {
     if (response.statusCode == 200) {
       var json = utf8.decode(response.bodyBytes);
       return folderCompositionFromJson(json);
+    } else {
+      return [];
     }
   }
 
@@ -79,6 +80,8 @@ class RemoteServices {
     if (response.statusCode == 200) {
       var x = utf8.decode(response.bodyBytes);
       return musicansFromJson(x);
+    } else {
+      return [];
     }
   }
 
@@ -92,7 +95,7 @@ class RemoteServices {
       var json = utf8.decode(response.bodyBytes);
       return foldersFromJson(json);
     } else {
-      print('${response.statusCode}');
+      return [];
     }
   }
 }

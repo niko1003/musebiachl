@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -17,21 +15,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: Scaffold(
+      home: const Scaffold(
         resizeToAvoidBottomInset: true,
-        backgroundColor: const Color.fromRGBO(40, 38, 56, 1),
+        backgroundColor: Color.fromRGBO(40, 38, 56, 1),
         body: LoginScreen(),
-        bottomNavigationBar: BottomAppBar(
-            color: Colors.transparent,
-            elevation: 0,
-            child: Container(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                "Company name, Inc",
-                style: TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            )),
       ),
     );
   }
@@ -50,22 +37,15 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isObscure = true;
   bool _isVisible = false;
 
-  final TapGestureRecognizer _gestureRecognizer = TapGestureRecognizer()
-    ..onTap = () {
-      if (kDebugMode) {
-        print("Hello world from _gestureRecognizer");
-      }
-    };
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
         reverse: true,
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            SizedBox(
+            const SizedBox(
               height: 60,
               width: 200,
             ),
@@ -76,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 200,
                 width: 400,
                 alignment: Alignment.center,
-                child: Text(
+                child: const Text(
                   "Login",
                   style: TextStyle(
                     color: Colors.white,
@@ -88,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            SizedBox(
+            const SizedBox(
               height: 60,
               width: 10,
             ),
@@ -101,8 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
               maintainState: true,
               child: Container(
                 alignment: Alignment.centerLeft,
-                padding: EdgeInsets.all(10),
-                child: Text(
+                padding: const EdgeInsets.all(10),
+                child: const Text(
                   "Wrong credentials entered",
                   style: TextStyle(
                     color: Colors.red,
@@ -116,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Container(
               height: 140,
               width: 530,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                   borderRadius: BorderRadius.all(Radius.circular(20)),
                   color: Colors.white),
               child: Column(
@@ -128,13 +108,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       });
                     },
                     controller: usernameController, // Controller for Username
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: "Username",
                         contentPadding: EdgeInsets.all(20)),
                     onEditingComplete: () => FocusScope.of(context).nextFocus(),
                   ),
-                  Divider(
+                  const Divider(
                     thickness: 3,
                   ),
                   TextFormField(
@@ -148,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: "Password",
-                        contentPadding: EdgeInsets.all(20),
+                        contentPadding: const EdgeInsets.all(20),
                         // Adding the visibility icon to toggle visibility of the password field
                         suffixIcon: IconButton(
                           icon: Icon(_isObscure

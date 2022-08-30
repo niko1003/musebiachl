@@ -17,8 +17,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   final RemoteServices remoteService = RemoteServices();
 
-  bool _showPassword = false;
-
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   String authToken = '';
 
@@ -39,15 +37,6 @@ class _LoginPageState extends State<LoginPage> {
     authToken = await _prefs.then((SharedPreferences prefs) {
       return prefs.getString('authToken') ?? '';
     });
-
-    // TODO get user from API -> if that not null.
-
-    // if(!authToken.isEmpty) {
-    //       Navigator.pushReplacement(
-    //          context,
-    //        MaterialPageRoute(
-    //            builder: (context) => HomePage(authToken: authToken)));
-    //}
   }
 
   Future<void> login() async {
@@ -83,10 +72,11 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: Colors.red.shade300,
       body: Container(
+        key: const Key("main"),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.symmetric(vertical: 50),
+              padding: const EdgeInsets.symmetric(vertical: 50),
               child: Image.asset(
                 'assets/images/profile.png',
                 height: 200,
@@ -95,24 +85,24 @@ class _LoginPageState extends State<LoginPage> {
             ),
             Expanded(
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 32),
-                constraints: BoxConstraints.expand(),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                constraints: const BoxConstraints.expand(),
+                decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(35),
                         topRight: Radius.circular(35))),
                 child: Column(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       height: 50,
                     ),
-                    Text(
+                    const Text(
                       'Login',
                       style:
                           TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 16,
                     ),
                     TextField(
@@ -122,22 +112,22 @@ class _LoginPageState extends State<LoginPage> {
                       },
                       decoration: InputDecoration(
                           // icon: Icon(Icons.mail),
-                          prefixIcon: Icon(Icons.mail),
+                          prefixIcon: const Icon(Icons.mail),
                           suffixIcon: emailController.text.isEmpty
-                              ? Text('')
+                              ? const Text('')
                               : GestureDetector(
                                   onTap: () {
                                     emailController.clear();
                                   },
-                                  child: Icon(Icons.close)),
+                                  child: const Icon(Icons.close)),
                           hintText: 'TK Muse',
                           labelText: 'Username',
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  BorderSide(color: Colors.red, width: 1))),
+                              borderSide: const BorderSide(
+                                  color: Colors.red, width: 1))),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 16,
                     ),
                     TextField(
@@ -145,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
                       controller: passwordController,
                       decoration: InputDecoration(
                           // icon: Icon(Icons.mail),
-                          prefixIcon: Icon(Icons.lock),
+                          prefixIcon: const Icon(Icons.lock),
                           suffixIcon: GestureDetector(
                               onTap: () {
                                 isVisible = !isVisible;
@@ -158,16 +148,16 @@ class _LoginPageState extends State<LoginPage> {
                           labelText: 'Password',
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  BorderSide(color: Colors.red, width: 1))),
+                              borderSide: const BorderSide(
+                                  color: Colors.red, width: 1))),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 16,
                     ),
                     ElevatedButton(
                         onPressed: login,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
                           child: Text('Submit'),
                         ))
