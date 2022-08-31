@@ -28,8 +28,11 @@ class _ScorePageState extends State<ScorePage> {
     super.dispose();
   }
 
-  void goBack() {
-    scaleStateController.scaleState = PhotoViewScaleState.originalSize;
+  bool locked = false;
+
+  void lock() {
+    locked = !locked;
+    //scaleStateController.scaleState = PhotoViewScaleState.originalSize;
   }
 
   @override
@@ -43,14 +46,34 @@ class _ScorePageState extends State<ScorePage> {
           backgroundDecoration: const BoxDecoration(color: Colors.black),
           gaplessPlayback: false,
           customSize: MediaQuery.of(context).size,
-          enableRotation: true,
+          enableRotation: !locked,
+          disableGestures: locked,
           minScale: PhotoViewComputedScale.contained * 0.8,
           maxScale: PhotoViewComputedScale.covered * 1.8,
           initialScale: PhotoViewComputedScale.contained,
           basePosition: Alignment.center,
           scaleStateController: scaleStateController,
         )),
-        TextButton(child: const Text("Go to original size"), onPressed: goBack)
+        ElevatedButton(
+            child: locked ? const Text('Unlock') : const Text("Lock"),
+            style: locked
+                ? ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.green),
+                    padding:
+                        MaterialStateProperty.all(const EdgeInsets.all(10)),
+                    textStyle: MaterialStateProperty.all(
+                        const TextStyle(fontSize: 10)))
+                : ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.red),
+                    padding:
+                        MaterialStateProperty.all(const EdgeInsets.all(10)),
+                    textStyle: MaterialStateProperty.all(
+                        const TextStyle(fontSize: 10))),
+            onPressed: () {
+              setState(() {
+                lock();
+              });
+            })
       ],
     );
   }
