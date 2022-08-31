@@ -39,11 +39,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> login() async {
-    remoteService.login(
-      emailController.text,
-      passwordController.text,
-    );
-
     try {
       AuthToken authToken = await remoteService.login(
         emailController.text,

@@ -16,8 +16,8 @@ class RemoteServices {
   //setup http client to handle multiple request
   var client = http.Client();
 
-  String baseUrl = 'https://klenig.at/muse';
-  String localToken = 'not-set';
+  static String baseUrl = 'https://klenig.at/muse';
+  static String localToken = 'not-set';
 
   persistAuthToken(AuthToken authToken) async {
     final SharedPreferences prefs = await _prefs;
@@ -34,6 +34,7 @@ class RemoteServices {
         baseUrl + '/auth/token?username=' + username + "&password=" + password);
     var response = await client.post(uri);
     var json = utf8.decode(response.bodyBytes);
+
     if (response.statusCode == 200) {
       AuthToken authToken = authTokenFromJson(json);
       localToken = authToken.token;
