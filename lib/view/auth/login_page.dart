@@ -64,35 +64,24 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.red.shade300,
       body: Container(
         key: const Key("main"),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 50),
-              child: Image.asset(
-                'assets/images/profile.png',
-                height: 200,
-                width: 200,
-              ),
-            ),
             Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 constraints: const BoxConstraints.expand(),
                 decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(35),
-                        topRight: Radius.circular(35))),
+                  color: Colors.white,
+                ),
                 child: Column(
                   children: [
                     const SizedBox(
                       height: 50,
                     ),
                     const Text(
-                      'Login',
+                      'Muse Biachl',
                       style:
                           TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     ),
@@ -105,21 +94,18 @@ class _LoginPageState extends State<LoginPage> {
                         setState(() {});
                       },
                       decoration: InputDecoration(
-                          // icon: Icon(Icons.mail),
-                          prefixIcon: const Icon(Icons.mail),
-                          suffixIcon: emailController.text.isEmpty
-                              ? const Text('')
-                              : GestureDetector(
-                                  onTap: () {
-                                    emailController.clear();
-                                  },
-                                  child: const Icon(Icons.close)),
-                          hintText: 'TK Muse',
-                          labelText: 'Username',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                  color: Colors.red, width: 1))),
+                        // icon: Icon(Icons.mail),
+                        prefixIcon: const Icon(Icons.mail),
+                        suffixIcon: emailController.text.isEmpty
+                            ? const Text('')
+                            : GestureDetector(
+                                onTap: () {
+                                  emailController.clear();
+                                },
+                                child: const Icon(Icons.close)),
+                        hintText: 'TK Muse',
+                        labelText: 'Username',
+                      ),
                     ),
                     const SizedBox(
                       height: 16,
@@ -128,22 +114,19 @@ class _LoginPageState extends State<LoginPage> {
                       obscureText: isVisible,
                       controller: passwordController,
                       decoration: InputDecoration(
-                          // icon: Icon(Icons.mail),
-                          prefixIcon: const Icon(Icons.lock),
-                          suffixIcon: GestureDetector(
-                              onTap: () {
-                                isVisible = !isVisible;
-                                setState(() {});
-                              },
-                              child: Icon(isVisible
-                                  ? Icons.visibility
-                                  : Icons.visibility_off)),
-                          hintText: 'type your password',
-                          labelText: 'Password',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                  color: Colors.red, width: 1))),
+                        // icon: Icon(Icons.mail),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: GestureDetector(
+                            onTap: () {
+                              isVisible = !isVisible;
+                              setState(() {});
+                            },
+                            child: Icon(isVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off)),
+                        hintText: 'type your password',
+                        labelText: 'Password',
+                      ),
                     ),
                     const SizedBox(
                       height: 16,
@@ -153,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
-                          child: Text('Submit'),
+                          child: Text('Login'),
                         ))
                   ],
                 ),
