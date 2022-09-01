@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:wakelock/wakelock.dart';
 
 class ScorePage extends StatefulWidget {
   static const routeName = '/score';
@@ -19,12 +20,15 @@ class _ScorePageState extends State<ScorePage> {
   @override
   void initState() {
     super.initState();
+    Wakelock.enable();
     scaleStateController = PhotoViewScaleStateController();
   }
 
   @override
   void dispose() {
     scaleStateController.dispose();
+    Wakelock.disable();
+    locked = false;
     super.dispose();
   }
 
