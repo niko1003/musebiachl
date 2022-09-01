@@ -54,26 +54,29 @@ class _ScorePageState extends State<ScorePage> {
           basePosition: Alignment.center,
           scaleStateController: scaleStateController,
         )),
-        ElevatedButton(
-            child: locked ? const Text('Unlock') : const Text("Lock"),
-            style: locked
-                ? ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all(Colors.green),
-                    padding:
-                        MaterialStateProperty.all(const EdgeInsets.all(10)),
-                    textStyle: MaterialStateProperty.all(
-                        const TextStyle(fontSize: 10)))
-                : ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all(Colors.red),
-                    padding:
-                        MaterialStateProperty.all(const EdgeInsets.all(10)),
-                    textStyle: MaterialStateProperty.all(
-                        const TextStyle(fontSize: 10))),
-            onPressed: () {
-              setState(() {
-                lock();
-              });
-            })
+        Align(
+          alignment: Alignment.bottomRight,
+          child: ElevatedButton(
+              child: locked ? const Text('Unlock') : const Text("Lock"),
+              style: locked
+                  ? ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(Colors.green),
+                      padding:
+                          MaterialStateProperty.all(const EdgeInsets.all(10)),
+                      textStyle: MaterialStateProperty.all(
+                          const TextStyle(fontSize: 10)))
+                  : ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(Colors.red),
+                      padding:
+                          MaterialStateProperty.all(const EdgeInsets.all(10)),
+                      textStyle: MaterialStateProperty.all(
+                          const TextStyle(fontSize: 10))),
+              onPressed: () {
+                setState(() {
+                  lock();
+                });
+              }),
+        )
       ],
     );
   }

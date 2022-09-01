@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(runner LANGUAGES CXX)
 
 set(BINARY_NAME "musebiachl")
-set(APPLICATION_ID "org.klenig.muse.musebiachl")
+set(APPLICATION_ID "org.klenig.musebiachl")
 
 cmake_policy(SET CMP0063 NEW)
 

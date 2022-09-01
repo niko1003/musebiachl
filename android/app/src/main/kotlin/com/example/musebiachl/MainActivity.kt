@@ -1,4 +1,4 @@
-package org.klenig.muse.musebiachl
+package org.klenig.musebiachl
 
 import io.flutter.embedding.android.FlutterActivity
 
