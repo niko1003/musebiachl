@@ -43,10 +43,16 @@ class _FolderPage extends State<FolderPage> {
       return prefs.getInt('musicianId') ?? 11;
     });
 
-    compositions =
-        await RemoteServices().getFolderCompositions(musicianId, widget.id);
-
-    if (compositions != null) {
+    try {
+      compositions =
+          await RemoteServices().getFolderCompositions(musicianId, widget.id);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: Colors.red.shade300,
+      ));
+      compositions = [];
+    } finally {
       setState(() {
         isLoaded = true;
       });

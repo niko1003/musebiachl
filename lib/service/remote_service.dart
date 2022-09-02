@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
 import 'dart:convert';
 
 import 'package:musebiachl/model/api/auth_token.dart';
@@ -19,6 +22,12 @@ class RemoteServices {
   static String baseUrl = 'https://klenig.at/muse';
   static String localToken = 'not-set';
 
+  Future<Map<String, String>> createRequestHeaders() async {
+    final SharedPreferences prefs = await _prefs;
+    String t = prefs.getString("token") ?? localToken;
+    return {"x-muse-token": t};
+  }
+
   persistAuthToken(AuthToken authToken) async {
     final SharedPreferences prefs = await _prefs;
     await prefs.setString("token", authToken.token);
@@ -32,7 +41,14 @@ class RemoteServices {
   Future<AuthToken> login(String username, String password) async {
     var uri = Uri.parse(
         baseUrl + '/auth/token?username=' + username + "&password=" + password);
-    var response = await client.post(uri);
+
+    Response response;
+    try {
+      response = await client.post(uri).timeout(const Duration(seconds: 2));
+    } on TimeoutException catch (_) {
+      throw Exception("cannot reach server / Server offline.");
+    }
+
     var json = utf8.decode(response.bodyBytes);
 
     if (response.statusCode == 200) {
@@ -47,12 +63,6 @@ class RemoteServices {
     throw Exception(serverException.message);
   }
 
-  Future<Map<String, String>> getHeaders() async {
-    final SharedPreferences prefs = await _prefs;
-    String t = prefs.getString("token") ?? localToken;
-    return {"x-muse-token": t};
-  }
-
   Future<List<FolderComposition>?> getFolderCompositions(
       int musicianId, int folderId) async {
     var uri = Uri.parse(baseUrl +
@@ -61,42 +71,67 @@ class RemoteServices {
         '/find-for-musician?musicianId=' +
         musicianId.toString());
 
-    var response = await client.get(uri, headers: await getHeaders());
-
+    Response response;
+    try {
+      response = await client
+          .get(uri, headers: await createRequestHeaders())
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException catch (_) {
+      throw Exception("cannot reach server (timeout 5 sec)");
+    }
     //Check for response
+    String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
-      var json = utf8.decode(response.bodyBytes);
       return folderCompositionFromJson(json);
     } else {
-      return [];
+      ServerException serverException = serverExceptionFromJson(json);
+      throw Exception(serverException.message);
     }
   }
 
   Future<List<Musician>?> getMusicians() async {
     //setup http client
     var uri = Uri.parse(baseUrl + '/app/musician');
-    var response = await client.get(uri, headers: await getHeaders());
+
+    Response response;
+    try {
+      response = await client
+          .get(uri, headers: await createRequestHeaders())
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException catch (_) {
+      throw Exception("cannot reach server (timout 5 sec)");
+    }
 
     //Check for response
+    String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
-      var x = utf8.decode(response.bodyBytes);
-      return musicansFromJson(x);
+      return musicansFromJson(json);
     } else {
-      return [];
+      ServerException serverException = serverExceptionFromJson(json);
+      throw Exception(serverException.message);
     }
   }
 
   Future<List<Folder>?> getFolders() async {
     //setup http client
     var uri = Uri.parse(baseUrl + '/app/folder/');
-    var response = await client.get(uri, headers: await getHeaders());
+
+    Response response;
+    try {
+      response = await client
+          .get(uri, headers: await createRequestHeaders())
+          .timeout(const Duration(seconds: 10));
+    } on TimeoutException catch (_) {
+      throw Exception("cannot reach server (timeout 10 sec)");
+    }
 
     //Check for response
+    String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
-      var json = utf8.decode(response.bodyBytes);
       return foldersFromJson(json);
     } else {
-      return [];
+      ServerException serverException = serverExceptionFromJson(json);
+      throw Exception(serverException.message);
     }
   }
 }

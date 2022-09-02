@@ -37,13 +37,19 @@ class _UsersPageState extends State<UsersPage> {
 
   //function to get Data from API
   getData() async {
-    user = await RemoteServices().getMusicians();
     musicianId = await _prefs.then((SharedPreferences prefs) {
       return prefs.getInt('musicianId') ?? 11;
     });
-    if (user != null) {
+    try {
+      user = await RemoteServices().getMusicians();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: Colors.red.shade300,
+      ));
+      user = [];
+    } finally {
       setState(() {
-        //print("post: $post");
         isLoaded = true;
       });
     }
