@@ -44,7 +44,7 @@ class RemoteServices {
 
     Response response;
     try {
-      response = await client.post(uri).timeout(const Duration(seconds: 2));
+      response = await client.post(uri).timeout(const Duration(seconds: 12));
     } on TimeoutException catch (_) {
       throw Exception("cannot reach server / Server offline.");
     }
@@ -75,7 +75,7 @@ class RemoteServices {
     try {
       response = await client
           .get(uri, headers: await createRequestHeaders())
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
     } on TimeoutException catch (_) {
       throw Exception("cannot reach server (timeout 5 sec)");
     }
@@ -97,7 +97,7 @@ class RemoteServices {
     try {
       response = await client
           .get(uri, headers: await createRequestHeaders())
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
     } on TimeoutException catch (_) {
       throw Exception("cannot reach server (timout 5 sec)");
     }
@@ -120,7 +120,7 @@ class RemoteServices {
     try {
       response = await client
           .get(uri, headers: await createRequestHeaders())
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 20));
     } on TimeoutException catch (_) {
       throw Exception("cannot reach server (timeout 10 sec)");
     }
