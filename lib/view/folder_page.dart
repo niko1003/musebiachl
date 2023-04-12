@@ -24,6 +24,7 @@ class FolderPage extends StatefulWidget {
 class _FolderPage extends State<FolderPage> {
   //List to store post data
   List<FolderComposition>? compositions;
+  List<String> cachedFiles = List.empty();
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
@@ -41,6 +42,10 @@ class _FolderPage extends State<FolderPage> {
   getData() async {
     int musicianId = await _prefs.then((SharedPreferences prefs) {
       return prefs.getInt('musicianId') ?? 11;
+    });
+
+    cachedFiles = await _prefs.then((SharedPreferences prefs) {
+      return prefs.getStringList('cached-files') ?? List.empty();
     });
 
     try {
@@ -75,6 +80,7 @@ class _FolderPage extends State<FolderPage> {
               var label = compositions![index].compositionLabel;
               var instrumentLabel = compositions![index].instrumentLabel;
               int folderOrdering = compositions![index].folderOrdering;
+              bool cached = cachedFiles.contains(fileId.toString());
 
               String subtitle = compositions![index].scoreNotes == null
                   ? instrumentLabel
@@ -98,7 +104,8 @@ class _FolderPage extends State<FolderPage> {
                         ),
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: Colors.blue,
+                        backgroundColor:
+                            cached ? Colors.lightGreen : Colors.blue,
                         child: Text(folderOrdering.toString()),
                       ),
                       title: Text(label),

@@ -34,8 +34,16 @@ class _LoginPageState extends State<LoginPage> {
   //function to get Data from API
   getData() async {
     authToken = await _prefs.then((SharedPreferences prefs) {
-      return prefs.getString('authToken') ?? '';
+      return prefs.getString('token') ?? '';
     });
+
+    debugPrint('authToken: $authToken');
+    if (authToken.isNotEmpty) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => HomePage(authToken: authToken)));
+    }
   }
 
   Future<void> login() async {
@@ -45,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
         passwordController.text,
       );
 
-      Navigator.push(
+      Navigator.pushReplacement(
           context,
           MaterialPageRoute(
               builder: (context) => HomePage(authToken: authToken.token)));

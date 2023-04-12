@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:developer';
+import 'dart:html';
+import 'package:flutter/foundation.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
@@ -38,6 +41,11 @@ class RemoteServices {
     await prefs.remove("token");
   }
 
+  clearAll() async {
+    final SharedPreferences prefs = await _prefs;
+    prefs.clear();
+  }
+
   Future<AuthToken> login(String username, String password) async {
     var uri = Uri.parse(
         baseUrl + '/auth/token?username=' + username + "&password=" + password);
@@ -65,6 +73,13 @@ class RemoteServices {
 
   Future<List<FolderComposition>?> getFolderCompositions(
       int musicianId, int folderId) async {
+    final String storedKey = "folder-{$folderId}-{$musicianId}";
+    final SharedPreferences prefs = await _prefs;
+    String m = prefs.getString(storedKey) ?? "";
+    if (m.isNotEmpty) {
+      return folderCompositionFromJson(m);
+    }
+
     var uri = Uri.parse(baseUrl +
         '/app/folder/' +
         folderId.toString() +
@@ -82,6 +97,7 @@ class RemoteServices {
     //Check for response
     String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
+      prefs.setString(storedKey, json);
       return folderCompositionFromJson(json);
     } else {
       ServerException serverException = serverExceptionFromJson(json);
@@ -90,6 +106,13 @@ class RemoteServices {
   }
 
   Future<List<Musician>?> getMusicians() async {
+    const String storedKey = "musicians";
+    final SharedPreferences prefs = await _prefs;
+    String m = prefs.getString(storedKey) ?? "";
+    if (m.isNotEmpty) {
+      return musicansFromJson(m);
+    }
+
     //setup http client
     var uri = Uri.parse(baseUrl + '/app/musician');
 
@@ -105,6 +128,7 @@ class RemoteServices {
     //Check for response
     String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
+      prefs.setString(storedKey, json);
       return musicansFromJson(json);
     } else {
       ServerException serverException = serverExceptionFromJson(json);
@@ -114,6 +138,13 @@ class RemoteServices {
 
   Future<List<Folder>?> getFolders() async {
     //setup http client
+    const String storedKey = "folders";
+    final SharedPreferences prefs = await _prefs;
+    String m = prefs.getString(storedKey) ?? "";
+    if (m.isNotEmpty) {
+      return foldersFromJson(m);
+    }
+
     var uri = Uri.parse(baseUrl + '/app/folder/');
 
     Response response;
@@ -128,6 +159,7 @@ class RemoteServices {
     //Check for response
     String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
+      prefs.setString(storedKey, json);
       return foldersFromJson(json);
     } else {
       ServerException serverException = serverExceptionFromJson(json);
