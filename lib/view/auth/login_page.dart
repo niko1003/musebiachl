@@ -37,7 +37,6 @@ class _LoginPageState extends State<LoginPage> {
       return prefs.getString('token') ?? '';
     });
 
-    debugPrint('authToken: $authToken');
     if (authToken.isNotEmpty) {
       Navigator.pushReplacement(
           context,
