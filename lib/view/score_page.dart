@@ -65,7 +65,8 @@ class _ScorePageState extends State<ScorePage> {
                 imageProvider: CachedNetworkImageProvider(
                     'https://klenig.at/muse/file/image/' + widget.id.toString(),
                     cacheKey: widget.id.toString(),
-                    errorListener: () => fileFetched = false),
+                    errorListener: (obj) => fileFetched = false
+                ),
                 backgroundDecoration: const BoxDecoration(color: Colors.black),
                 gaplessPlayback: false,
                 customSize: MediaQuery.of(context).size,
