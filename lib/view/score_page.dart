@@ -77,28 +77,59 @@ class _ScorePageState extends State<ScorePage> {
                 initialScale: PhotoViewComputedScale.contained,
                 basePosition: Alignment.center,
                 scaleStateController: scaleStateController)),
-        Align(
-          alignment: Alignment.bottomRight,
-          child: ElevatedButton(
-              child: locked ? const Text('Unlock') : const Text("Lock"),
-              style: locked
-                  ? ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.green),
-                      padding:
-                          MaterialStateProperty.all(const EdgeInsets.all(10)),
-                      textStyle: MaterialStateProperty.all(
-                          const TextStyle(fontSize: 10)))
-                  : ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.red),
-                      padding:
-                          MaterialStateProperty.all(const EdgeInsets.all(10)),
-                      textStyle: MaterialStateProperty.all(
-                          const TextStyle(fontSize: 10))),
-              onPressed: () {
-                setState(() {
-                  lock();
-                });
-              }),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(Colors.white.withOpacity(0.8)),
+                  foregroundColor: MaterialStateProperty.all(Colors.black),
+                  padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.arrow_back, size: 18),
+                    SizedBox(width: 4),
+                    Text('back'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                  child: locked ? const Text('Unlock') : const Text("Lock"),
+                  style: locked
+                      ? ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.green),
+                          padding:
+                              MaterialStateProperty.all(const EdgeInsets.all(10)),
+                          textStyle: MaterialStateProperty.all(
+                              const TextStyle(fontSize: 10)))
+                      : ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.red),
+                          padding:
+                              MaterialStateProperty.all(const EdgeInsets.all(10)),
+                          textStyle: MaterialStateProperty.all(
+                              const TextStyle(fontSize: 10))),
+                  onPressed: () {
+                    setState(() {
+                      lock();
+                    });
+                  }),
+            ),
+          ),
         )
       ],
     );

@@ -6,7 +6,9 @@ import 'package:musebiachl/service/remote_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UsersPage extends StatefulWidget {
-  const UsersPage({Key? key}) : super(key: key);
+  final VoidCallback? onMusicianSelected;
+
+  const UsersPage({Key? key, this.onMusicianSelected}) : super(key: key);
 
   @override
   State<UsersPage> createState() => _UsersPageState();
@@ -90,7 +92,15 @@ class _UsersPageState extends State<UsersPage> {
                     setState(() {
                       musicianId = userId;
                     });
-                    persistMusicianId(userId);
+                    await persistMusicianId(userId);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('$label ausgewählt'),
+                      duration: const Duration(seconds: 1),
+                      backgroundColor: Colors.green.shade600,
+                    ));
+                    if (widget.onMusicianSelected != null) {
+                      widget.onMusicianSelected!();
+                    }
                   },
                   title: Text(label),
                   subtitle: Text(subtitle),

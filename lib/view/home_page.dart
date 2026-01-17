@@ -15,13 +15,19 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  List<Widget> tabWidget = [
-    const UsersPage(),
-    const FoldersPage(),
-  ];
+  void _onMusicianSelected() {
+    setState(() {
+      _selectedIndex = 1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> tabWidget = [
+      UsersPage(onMusicianSelected: _onMusicianSelected),
+      const FoldersPage(),
+    ];
+
     return Scaffold(
       body: tabWidget.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
