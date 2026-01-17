@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       return prefs.getString('token') ?? '';
     });
 
-    if (authToken.isNotEmpty) {
+    if (authToken.isNotEmpty && mounted) {
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -52,6 +52,7 @@ class _LoginPageState extends State<LoginPage> {
         passwordController.text,
       );
 
+      if (!mounted) return;
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -59,6 +60,7 @@ class _LoginPageState extends State<LoginPage> {
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,

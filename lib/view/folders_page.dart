@@ -28,6 +28,7 @@ class _FoldersPageState extends State<FoldersPage> {
     try {
       folders = await RemoteServices().getFolders();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,
@@ -49,16 +50,23 @@ class _FoldersPageState extends State<FoldersPage> {
       ),
       body: Visibility(
         visible: isLoaded,
+        replacement: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Loading Folder from API'),
+              SizedBox(height: 10.0),
+              CircularProgressIndicator()
+            ],
+          ),
+        ),
         child: ListView.builder(
             itemCount: folders?.length,
             itemBuilder: (context, index) {
-              var folderId = folders![index].id;
-              var label = folders![index].version == null
+              int folderId = folders![index].id;
+              String label = folders![index].version == null
                   ? folders![index].name
-                  : folders![index].name +
-                      " (" +
-                      folders![index].version! +
-                      ")";
+                  : '${folders![index].name} (${folders![index].version!})';
 
               return ListTile(
                 onTap: () => Navigator.pushNamed(
@@ -69,16 +77,6 @@ class _FoldersPageState extends State<FoldersPage> {
                 title: Text(label),
               );
             }),
-        replacement: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text('Loading Folder from API'),
-              SizedBox(height: 10.0),
-              CircularProgressIndicator()
-            ],
-          ),
-        ),
       ),
     );
   }

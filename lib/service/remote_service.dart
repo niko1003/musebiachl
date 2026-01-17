@@ -44,8 +44,8 @@ class RemoteServices {
   }
 
   Future<AuthToken> login(String username, String password) async {
-    var uri = Uri.parse(
-        baseUrl + '/auth/token?username=' + username + "&password=" + password);
+    Uri uri = Uri.parse(
+        '$baseUrl/auth/token?username=$username&password=$password');
 
     Response response;
     try {
@@ -77,11 +77,8 @@ class RemoteServices {
       return folderCompositionFromJson(m);
     }
 
-    var uri = Uri.parse(baseUrl +
-        '/app/folder/' +
-        folderId.toString() +
-        '/find-for-musician?musicianId=' +
-        musicianId.toString());
+    Uri uri = Uri.parse(
+        '$baseUrl/app/folder/$folderId/find-for-musician?musicianId=$musicianId');
 
     Response response;
     try {
@@ -111,7 +108,7 @@ class RemoteServices {
     }
 
     //setup http client
-    var uri = Uri.parse(baseUrl + '/app/musician');
+    Uri uri = Uri.parse('$baseUrl/app/musician');
 
     Response response;
     try {
@@ -142,7 +139,7 @@ class RemoteServices {
       return foldersFromJson(m);
     }
 
-    var uri = Uri.parse(baseUrl + '/app/folder/');
+    Uri uri = Uri.parse('$baseUrl/app/folder/');
 
     Response response;
     try {

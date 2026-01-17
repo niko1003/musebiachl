@@ -45,6 +45,7 @@ class _UsersPageState extends State<UsersPage> {
     try {
       user = await RemoteServices().getMusicians();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,
@@ -66,26 +67,38 @@ class _UsersPageState extends State<UsersPage> {
       ),
       body: Visibility(
         visible: isLoaded,
+        replacement: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Loading Musicians from API',
+                style: TextStyle(fontFamily: 'Roboto'),
+              ),
+              SizedBox(height: 10.0),
+              CircularProgressIndicator()
+            ],
+          ),
+        ),
         child: ListView.builder(
             itemCount: user?.length,
             itemBuilder: (context, index) {
-              var userId = user![index].id;
-              var label = user![index].firstName + " " + user![index].name;
-              var subtitle =
+              int userId = user![index].id;
+              String label = '${user![index].firstName} ${user![index].name}';
+              String subtitle =
                   user![index].instruments.map((item) => item.label).join(", ");
 
               if (user![index].optionalInstruments.isNotEmpty) {
-                subtitle = subtitle +
-                    " | " +
-                    user![index]
-                        .optionalInstruments
-                        .map((item) => item.label)
-                        .join(", ");
+                String optionalLabels = user![index]
+                    .optionalInstruments
+                    .map((item) => item.label)
+                    .join(", ");
+                subtitle = '$subtitle | $optionalLabels';
               }
 
               return Container(
                 color: (musicianId == userId)
-                    ? Colors.blue.withOpacity(0.5)
+                    ? Colors.blue.withValues(alpha: 0.5)
                     : Colors.transparent,
                 child: ListTile(
                   onTap: () async {
@@ -93,6 +106,7 @@ class _UsersPageState extends State<UsersPage> {
                       musicianId = userId;
                     });
                     await persistMusicianId(userId);
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text('$label ausgewählt'),
                       duration: const Duration(seconds: 1),
@@ -107,19 +121,6 @@ class _UsersPageState extends State<UsersPage> {
                 ),
               );
             }),
-        replacement: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text(
-                'Loading Musicians from API',
-                style: TextStyle(fontFamily: 'Roboto'),
-              ),
-              SizedBox(height: 10.0),
-              CircularProgressIndicator()
-            ],
-          ),
-        ),
       ),
     );
   }

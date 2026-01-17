@@ -52,6 +52,7 @@ class _FolderPage extends State<FolderPage> {
       compositions =
           await RemoteServices().getFolderCompositions(musicianId, widget.id);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,
@@ -73,6 +74,16 @@ class _FolderPage extends State<FolderPage> {
       ),
       body: Visibility(
         visible: isLoaded,
+        replacement: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Loading Noten from API'),
+              SizedBox(height: 10.0),
+              CircularProgressIndicator()
+            ],
+          ),
+        ),
         child: ListView.builder(
             itemCount: compositions?.length,
             itemBuilder: (context, index) {
@@ -84,7 +95,7 @@ class _FolderPage extends State<FolderPage> {
 
               String subtitle = compositions![index].scoreNotes == null
                   ? instrumentLabel
-                  : instrumentLabel + " - " + compositions![index].scoreNotes!;
+                  : '$instrumentLabel - ${compositions![index].scoreNotes!}';
 
               var listTile = fileId == 0
                   ? ListTile(
@@ -114,16 +125,6 @@ class _FolderPage extends State<FolderPage> {
 
               return Container(child: listTile);
             }),
-        replacement: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text('Loading Noten from API'),
-              SizedBox(height: 10.0),
-              CircularProgressIndicator()
-            ],
-          ),
-        ),
       ),
     );
   }

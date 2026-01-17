@@ -63,7 +63,7 @@ class _ScorePageState extends State<ScorePage> {
         Positioned.fill(
             child: PhotoView(
                 imageProvider: CachedNetworkImageProvider(
-                    'https://klenig.at/muse/file/image/' + widget.id.toString(),
+                    'https://klenig.at/muse/file/image/${widget.id}',
                     cacheKey: widget.id.toString(),
                     errorListener: (obj) => fileFetched = false
                 ),
@@ -84,16 +84,16 @@ class _ScorePageState extends State<ScorePage> {
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Colors.white.withOpacity(0.8)),
-                  foregroundColor: MaterialStateProperty.all(Colors.black),
-                  padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  backgroundColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.8)),
+                  foregroundColor: WidgetStateProperty.all(Colors.black),
+                  padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.arrow_back, size: 18),
                     SizedBox(width: 4),
                     Text('back'),
@@ -109,25 +109,25 @@ class _ScorePageState extends State<ScorePage> {
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
-                  child: locked ? const Text('Unlock') : const Text("Lock"),
                   style: locked
                       ? ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(Colors.green),
+                          backgroundColor: WidgetStateProperty.all(Colors.green),
                           padding:
-                              MaterialStateProperty.all(const EdgeInsets.all(10)),
-                          textStyle: MaterialStateProperty.all(
+                              WidgetStateProperty.all(const EdgeInsets.all(10)),
+                          textStyle: WidgetStateProperty.all(
                               const TextStyle(fontSize: 10)))
                       : ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(Colors.red),
+                          backgroundColor: WidgetStateProperty.all(Colors.red),
                           padding:
-                              MaterialStateProperty.all(const EdgeInsets.all(10)),
-                          textStyle: MaterialStateProperty.all(
+                              WidgetStateProperty.all(const EdgeInsets.all(10)),
+                          textStyle: WidgetStateProperty.all(
                               const TextStyle(fontSize: 10))),
                   onPressed: () {
                     setState(() {
                       lock();
                     });
-                  }),
+                  },
+                  child: locked ? const Text('Unlock') : const Text("Lock")),
             ),
           ),
         )
