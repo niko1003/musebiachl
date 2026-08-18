@@ -6,7 +6,7 @@ import 'dart:convert';
 
 import 'package:musebiachl/model/api/auth_token.dart';
 import 'package:musebiachl/model/api/folder.dart';
-import 'package:musebiachl/model/api/musician.dart';
+import 'package:musebiachl/model/api/instrument.dart';
 import 'package:musebiachl/model/api/folder_composition.dart';
 import 'package:musebiachl/model/api/server_exception.dart';
 
@@ -69,8 +69,8 @@ class RemoteServices {
   }
 
   Future<List<FolderComposition>?> getFolderCompositions(
-      int musicianId, int folderId) async {
-    final String storedKey = "folder-{$folderId}-{$musicianId}";
+      String instrumentId, int folderId) async {
+    final String storedKey = "folder-{$folderId}-{$instrumentId}";
     final SharedPreferences prefs = await _prefs;
     String m = prefs.getString(storedKey) ?? "";
     if (m.isNotEmpty) {
@@ -78,7 +78,7 @@ class RemoteServices {
     }
 
     Uri uri = Uri.parse(
-        '$baseUrl/app/folder/$folderId/find-for-musician?musicianId=$musicianId');
+        '$baseUrl/app/folder/$folderId/find-for-instrument?instrumentId=$instrumentId');
 
     Response response;
     try {
@@ -99,16 +99,16 @@ class RemoteServices {
     }
   }
 
-  Future<List<Musician>?> getMusicians() async {
-    const String storedKey = "musicians";
+  Future<List<InstrumentGroup>?> getInstrumentGroups() async {
+    const String storedKey = "instrument-groups";
     final SharedPreferences prefs = await _prefs;
     String m = prefs.getString(storedKey) ?? "";
     if (m.isNotEmpty) {
-      return musicansFromJson(m);
+      return instrumentGroupsFromJson(m);
     }
 
     //setup http client
-    Uri uri = Uri.parse('$baseUrl/app/musician');
+    Uri uri = Uri.parse('$baseUrl/app/instrument');
 
     Response response;
     try {
@@ -123,7 +123,7 @@ class RemoteServices {
     String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
       prefs.setString(storedKey, json);
-      return musicansFromJson(json);
+      return instrumentGroupsFromJson(json);
     } else {
       ServerException serverException = serverExceptionFromJson(json);
       throw Exception(serverException.message);

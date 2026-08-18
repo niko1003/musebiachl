@@ -8,20 +8,17 @@ String folderCompositionToJson(List<FolderComposition> data) => json.encode(List
 
 class FolderComposition {
   FolderComposition({
-    required this.musicianId,
     required this.compositionLabel,
     required this.scoreId,
     required this.imageId,
     required this.instrumentId,
     required this.instrumentLabel,
     required this.primaryInstrument,
-    required this.optionalInstrument,
     required this.folderOrdering,
     required this.page,
     this.scoreNotes,
   });
 
-  int musicianId;
   String compositionLabel;
   String? scoreNotes;
   
@@ -30,28 +27,23 @@ class FolderComposition {
   String instrumentId;
   String instrumentLabel;
   bool primaryInstrument;
-  bool optionalInstrument;
 
   int folderOrdering;
   int page;
 
   factory FolderComposition.fromJson(Map<String, dynamic> json) => FolderComposition(
-    musicianId: json["musicianId"],
     compositionLabel: json["compositionLabel"],
     scoreId: json["scoreId"],
     imageId: json["imageId"],
     instrumentId: json["instrumentId"],
     instrumentLabel: json["instrumentLabel"],
     primaryInstrument: json["primaryInstrument"],
-    optionalInstrument: json["optionalInstrument"],
     folderOrdering: json["folderOrdering"],
     page: json["page"],
     scoreNotes: json["scoreNotes"],
   );
 
   Map<String, dynamic> toJson() => {
-    "musicianId": musicianId,
     "compositionLabel": compositionLabel,
-    
   };
 }

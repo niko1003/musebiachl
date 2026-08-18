@@ -8,6 +8,28 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.8.0+22] — 2026-08-18
+
+### Changed
+- **You now pick an instrument, not a musician.** The first tab lists instruments
+  grouped by instrument group as expandable sections, with the group holding the current
+  selection opened automatically. Musicians changed too often to be a useful selector.
+- The selection is persisted as `instrumentId` (a UUID string) instead of `musicianId`
+  (an int), and folder data is cached per instrument.
+- Reads `GET /app/instrument` and
+  `GET /app/folder/{id}/find-for-instrument?instrumentId=…`.
+
+### Removed
+- `users_page.dart` and the `Musician` model, replaced by `instruments_page.dart` and
+  `InstrumentGroup` / `Instrument`.
+- `musicianId` and `optionalInstrument` from `FolderComposition`. "Optional" instruments
+  were a property of a musician, so the concept no longer exists.
+
+### Breaking
+- Requires muse-server 3.3.0; this version cannot talk to 3.2.0 or earlier.
+- On upgrade nothing is selected until the player picks an instrument once. The old
+  cached folder entries keyed by musician are simply never read again.
+
 ## [1.7.0+21] — 2026-08-18
 
 ### Changed

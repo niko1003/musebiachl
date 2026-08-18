@@ -40,8 +40,8 @@ class _FolderPage extends State<FolderPage> {
 
   //function to get Data from API
   getData() async {
-    int musicianId = await _prefs.then((SharedPreferences prefs) {
-      return prefs.getInt('musicianId') ?? 11;
+    String instrumentId = await _prefs.then((SharedPreferences prefs) {
+      return prefs.getString('instrumentId') ?? '';
     });
 
     cachedFiles = await _prefs.then((SharedPreferences prefs) {
@@ -50,7 +50,7 @@ class _FolderPage extends State<FolderPage> {
 
     try {
       compositions =
-          await RemoteServices().getFolderCompositions(musicianId, widget.id);
+          await RemoteServices().getFolderCompositions(instrumentId, widget.id);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

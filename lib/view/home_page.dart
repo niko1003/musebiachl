@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:musebiachl/view/folders_page.dart';
-import 'package:musebiachl/view/users_page.dart';
+import 'package:musebiachl/view/instruments_page.dart';
 
 class HomePage extends StatefulWidget {
   final String authToken;
@@ -15,7 +15,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  void _onMusicianSelected() {
+  void _onInstrumentSelected() {
     setState(() {
       _selectedIndex = 1;
     });
@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     List<Widget> tabWidget = [
-      UsersPage(onMusicianSelected: _onMusicianSelected),
+      InstrumentsPage(onInstrumentSelected: _onInstrumentSelected),
       const FoldersPage(),
     ];
 
@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-              icon: Icon(Icons.account_circle), label: 'Musiker:innen'),
+              icon: Icon(Icons.music_note), label: 'Instrument'),
           BottomNavigationBarItem(
             label: 'Konzertmappen',
             icon: Icon(Icons.post_add),
