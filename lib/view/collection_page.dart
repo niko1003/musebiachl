@@ -1,36 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:musebiachl/model/api/folder_composition.dart';
+import 'package:musebiachl/model/api/collection_composition.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/view/score_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class FolderPage extends StatefulWidget {
-  static const routeName = '/folder';
+class CollectionPage extends StatefulWidget {
+  static const routeName = '/collection';
 
   final int id;
   final String name;
 
-  const FolderPage({
+  const CollectionPage({
     Key? key,
     required this.id,
     required this.name,
   }) : super(key: key);
 
   @override
-  State<FolderPage> createState() => _FolderPage();
+  State<CollectionPage> createState() => _CollectionPage();
 }
 
-class _FolderPage extends State<FolderPage> {
+class _CollectionPage extends State<CollectionPage> {
   //List to store post data
-  List<FolderComposition>? compositions;
+  List<CollectionComposition>? compositions;
   List<String> cachedFiles = List.empty();
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   //boolean to trigger if loaded
   var isLoaded = false;
-  final String folderName = "schurli";
+  final String collectionName = "schurli";
 
   @override
   void initState() {
@@ -50,7 +50,7 @@ class _FolderPage extends State<FolderPage> {
 
     try {
       compositions =
-          await RemoteServices().getFolderCompositions(instrumentId, widget.id);
+          await RemoteServices().getCollectionCompositions(instrumentId, widget.id);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -90,7 +90,7 @@ class _FolderPage extends State<FolderPage> {
               int fileId = compositions![index].imageId;
               var label = compositions![index].compositionLabel;
               var instrumentLabel = compositions![index].instrumentLabel;
-              int folderOrdering = compositions![index].folderOrdering;
+              int collectionOrdering = compositions![index].collectionOrdering;
               bool cached = cachedFiles.contains(fileId.toString());
 
               String subtitle = compositions![index].scoreNotes == null
@@ -101,7 +101,7 @@ class _FolderPage extends State<FolderPage> {
                   ? ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.blueGrey,
-                        child: Text(folderOrdering.toString()),
+                        child: Text(collectionOrdering.toString()),
                       ),
                       title: Text(label),
                       enabled: false)
@@ -117,7 +117,7 @@ class _FolderPage extends State<FolderPage> {
                       leading: CircleAvatar(
                         backgroundColor:
                             cached ? Colors.lightGreen : Colors.blue,
-                        child: Text(folderOrdering.toString()),
+                        child: Text(collectionOrdering.toString()),
                       ),
                       title: Text(label),
                       subtitle: Text(subtitle),

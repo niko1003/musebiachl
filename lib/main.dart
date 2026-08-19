@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:musebiachl/model/arg/folder_arguments.dart';
+import 'package:musebiachl/model/arg/collection_arguments.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
-import 'package:musebiachl/view/folder_page.dart';
+import 'package:musebiachl/view/collection_page.dart';
 import 'package:musebiachl/view/score_page.dart';
 import 'package:musebiachl/view/auth/login_page.dart';
 
@@ -18,16 +18,16 @@ class MyApp extends StatelessWidget {
       title: 'Muse Biachl',
       onGenerateRoute: (settings) {
         // If you push the PassArguments route
-        if (settings.name == FolderPage.routeName) {
+        if (settings.name == CollectionPage.routeName) {
           // Cast the arguments to the correct type: ScreenArguments.
-          final args = settings.arguments as FolderArguments;
+          final args = settings.arguments as CollectionArguments;
 
           // Then, extract the required data from
           // the arguments and pass the data to the
           // correct screen.
           return MaterialPageRoute(
             builder: (context) {
-              return FolderPage(
+              return CollectionPage(
                 id: args.id,
                 name: args.name,
               );

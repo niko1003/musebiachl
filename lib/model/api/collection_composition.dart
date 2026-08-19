@@ -1,20 +1,20 @@
 import 'dart:convert';
 
 
-List<FolderComposition> folderCompositionFromJson(String str) => List<FolderComposition>.from(json.decode(str).map((x) => FolderComposition.fromJson(x)));
-String folderCompositionToJson(List<FolderComposition> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+List<CollectionComposition> collectionCompositionFromJson(String str) => List<CollectionComposition>.from(json.decode(str).map((x) => CollectionComposition.fromJson(x)));
+String collectionCompositionToJson(List<CollectionComposition> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 
 
-class FolderComposition {
-  FolderComposition({
+class CollectionComposition {
+  CollectionComposition({
     required this.compositionLabel,
     required this.scoreId,
     required this.imageId,
     required this.instrumentId,
     required this.instrumentLabel,
     required this.primaryInstrument,
-    required this.folderOrdering,
+    required this.collectionOrdering,
     required this.page,
     this.scoreNotes,
   });
@@ -28,17 +28,17 @@ class FolderComposition {
   String instrumentLabel;
   bool primaryInstrument;
 
-  int folderOrdering;
+  int collectionOrdering;
   int page;
 
-  factory FolderComposition.fromJson(Map<String, dynamic> json) => FolderComposition(
+  factory CollectionComposition.fromJson(Map<String, dynamic> json) => CollectionComposition(
     compositionLabel: json["compositionLabel"],
     scoreId: json["scoreId"],
     imageId: json["imageId"],
     instrumentId: json["instrumentId"],
     instrumentLabel: json["instrumentLabel"],
     primaryInstrument: json["primaryInstrument"],
-    folderOrdering: json["folderOrdering"],
+    collectionOrdering: json["collectionOrdering"],
     page: json["page"],
     scoreNotes: json["scoreNotes"],
   );

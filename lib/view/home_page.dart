@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:musebiachl/view/folders_page.dart';
+import 'package:musebiachl/view/collections_page.dart';
 import 'package:musebiachl/view/instruments_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     List<Widget> tabWidget = [
       InstrumentsPage(onInstrumentSelected: _onInstrumentSelected),
-      const FoldersPage(),
+      const CollectionsPage(),
     ];
 
     return Scaffold(

@@ -5,9 +5,9 @@ import 'package:http/http.dart';
 import 'dart:convert';
 
 import 'package:musebiachl/model/api/auth_token.dart';
-import 'package:musebiachl/model/api/folder.dart';
+import 'package:musebiachl/model/api/collection.dart';
 import 'package:musebiachl/model/api/instrument.dart';
-import 'package:musebiachl/model/api/folder_composition.dart';
+import 'package:musebiachl/model/api/collection_composition.dart';
 import 'package:musebiachl/model/api/server_exception.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,17 +68,17 @@ class RemoteServices {
     throw Exception(serverException.message);
   }
 
-  Future<List<FolderComposition>?> getFolderCompositions(
-      String instrumentId, int folderId) async {
-    final String storedKey = "folder-{$folderId}-{$instrumentId}";
+  Future<List<CollectionComposition>?> getCollectionCompositions(
+      String instrumentId, int collectionId) async {
+    final String storedKey = "collection-{$collectionId}-{$instrumentId}";
     final SharedPreferences prefs = await _prefs;
     String m = prefs.getString(storedKey) ?? "";
     if (m.isNotEmpty) {
-      return folderCompositionFromJson(m);
+      return collectionCompositionFromJson(m);
     }
 
     Uri uri = Uri.parse(
-        '$baseUrl/app/folder/$folderId/find-for-instrument?instrumentId=$instrumentId');
+        '$baseUrl/app/collection/$collectionId/find-for-instrument?instrumentId=$instrumentId');
 
     Response response;
     try {
@@ -92,7 +92,7 @@ class RemoteServices {
     String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
       prefs.setString(storedKey, json);
-      return folderCompositionFromJson(json);
+      return collectionCompositionFromJson(json);
     } else {
       ServerException serverException = serverExceptionFromJson(json);
       throw Exception(serverException.message);
@@ -130,16 +130,16 @@ class RemoteServices {
     }
   }
 
-  Future<List<Folder>?> getFolders() async {
+  Future<List<Collection>?> getCollections() async {
     //setup http client
-    const String storedKey = "folders";
+    const String storedKey = "collections";
     final SharedPreferences prefs = await _prefs;
     String m = prefs.getString(storedKey) ?? "";
     if (m.isNotEmpty) {
-      return foldersFromJson(m);
+      return collectionsFromJson(m);
     }
 
-    Uri uri = Uri.parse('$baseUrl/app/folder/');
+    Uri uri = Uri.parse('$baseUrl/app/collection/');
 
     Response response;
     try {
@@ -154,7 +154,7 @@ class RemoteServices {
     String json = utf8.decode(response.bodyBytes);
     if (response.statusCode == 200) {
       prefs.setString(storedKey, json);
-      return foldersFromJson(json);
+      return collectionsFromJson(json);
     } else {
       ServerException serverException = serverExceptionFromJson(json);
       throw Exception(serverException.message);

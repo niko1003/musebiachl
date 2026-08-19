@@ -8,6 +8,21 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.9.0+23] — 2026-08-19
+
+### Changed
+- **Konzertmappe → Collection**, following muse-server 4.0.0: `/app/folder/` →
+  `/app/collection/`, and every `folder*.dart` renamed to `collection*.dart`. The
+  SharedPreferences cache keys change with them (`folders` → `collections`), so the
+  first launch after the update refetches instead of reading a stale cache.
+- **The collection list is grouped by type** — Konzertmappen, Marschbücher, Sammlungen,
+  Hefte — from the new `type` field. An unknown or missing type falls back to
+  Konzertmappe, so the app still works against an older server.
+
+### Removed
+- The folder `version` field; the list label is now just the name.
+
+
 ## [1.8.0+22] — 2026-08-18
 
 ### Changed
