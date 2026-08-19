@@ -64,9 +64,7 @@ class _FoldersPageState extends State<FoldersPage> {
             itemCount: folders?.length,
             itemBuilder: (context, index) {
               int folderId = folders![index].id;
-              String label = folders![index].version == null
-                  ? folders![index].name
-                  : '${folders![index].name} (${folders![index].version!})';
+              String label = folders![index].name;
 
               return ListTile(
                 onTap: () => Navigator.pushNamed(
