@@ -5,6 +5,25 @@ import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/view/score_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// One piece of a Mappe, as this player gets it: the title, and every page of their part.
+///
+/// The server answers one row per *page*, so a part running over three pages used to be
+/// three identical-looking entries. They are folded back into one here, because what a
+/// player is looking for is the piece.
+class _Piece {
+  final String label;
+  final String instrumentLabel;
+  final String? notes;
+  final int ordering;
+  final List<int> imageIds = [];
+  final List<int> imageRevisions = [];
+
+  _Piece(this.label, this.instrumentLabel, this.notes, this.ordering);
+
+  bool get playable => imageIds.isNotEmpty;
+  int get pages => imageIds.length;
+}
+
 class CollectionPage extends StatefulWidget {
   static const routeName = '/collection';
 
@@ -22,15 +41,12 @@ class CollectionPage extends StatefulWidget {
 }
 
 class _CollectionPage extends State<CollectionPage> {
-  //List to store post data
   List<CollectionComposition>? compositions;
   List<String> cachedFiles = List.empty();
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
-  //boolean to trigger if loaded
   var isLoaded = false;
-  final String collectionName = "schurli";
 
   @override
   void initState() {
@@ -38,35 +54,79 @@ class _CollectionPage extends State<CollectionPage> {
     getData();
   }
 
-  //function to get Data from API
-  getData() async {
-    String instrumentId = await _prefs.then((SharedPreferences prefs) {
-      return prefs.getString('instrumentId') ?? '';
-    });
+  /// Cache first, then the server.
+  ///
+  /// The stored copy goes on screen immediately, so opening a Mappe is instant and works
+  /// with no signal; the request behind it corrects the list a moment later. A failed
+  /// request while something is already showing is *silent* - that is the offline
+  /// feature doing its job, not an error worth a red bar during a rehearsal.
+  Future<void> getData() async {
+    final SharedPreferences prefs = await _prefs;
+    final String instrumentId = prefs.getString('instrumentId') ?? '';
+    cachedFiles = prefs.getStringList('cached-files') ?? List.empty();
 
-    cachedFiles = await _prefs.then((SharedPreferences prefs) {
-      return prefs.getStringList('cached-files') ?? List.empty();
-    });
+    final cached = await RemoteServices()
+        .cachedCollectionCompositions(instrumentId, widget.id);
+    if (cached != null && mounted) {
+      setState(() {
+        compositions = cached;
+        isLoaded = true;
+      });
+    }
 
     try {
-      compositions =
-          await RemoteServices().getCollectionCompositions(instrumentId, widget.id);
+      final fresh = await RemoteServices()
+          .fetchCollectionCompositions(instrumentId, widget.id);
+      if (!mounted) return;
+      setState(() {
+        compositions = fresh;
+        isLoaded = true;
+      });
     } catch (e) {
       if (!mounted) return;
+      setState(() => isLoaded = true);
+      if (cached != null) return; // offline, and the Mappe is already on screen
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,
       ));
       compositions = [];
-    } finally {
-      setState(() {
-        isLoaded = true;
-      });
     }
+  }
+
+  /// Consecutive rows of the same piece and the same part are one entry. The server
+  /// already returns them in order - by collection ordering, then page - so this only
+  /// has to look at the previous row rather than sort anything.
+  List<_Piece> get _pieces {
+    final pieces = <_Piece>[];
+
+    for (final row in compositions ?? <CollectionComposition>[]) {
+      final last = pieces.isEmpty ? null : pieces.last;
+      final sameEntry = last != null &&
+          last.label == row.compositionLabel &&
+          last.ordering == row.collectionOrdering &&
+          last.instrumentLabel == row.instrumentLabel;
+
+      if (!sameEntry) {
+        pieces.add(_Piece(row.compositionLabel, row.instrumentLabel,
+            row.scoreNotes, row.collectionOrdering));
+      }
+
+      // imageId 0 is the placeholder the server sends for a piece this instrument has
+      // no page of - the entry still belongs in the list, greyed out.
+      if (row.imageId != 0) {
+        pieces.last.imageIds.add(row.imageId);
+        pieces.last.imageRevisions.add(row.imageRevision);
+      }
+    }
+
+    return pieces;
   }
 
   @override
   Widget build(BuildContext context) {
+    final pieces = _pieces;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.name),
@@ -84,47 +144,64 @@ class _CollectionPage extends State<CollectionPage> {
             ],
           ),
         ),
-        child: ListView.builder(
-            itemCount: compositions?.length,
-            itemBuilder: (context, index) {
-              int fileId = compositions![index].imageId;
-              var label = compositions![index].compositionLabel;
-              var instrumentLabel = compositions![index].instrumentLabel;
-              int collectionOrdering = compositions![index].collectionOrdering;
-              bool cached = cachedFiles.contains(fileId.toString());
+        child: RefreshIndicator(
+          onRefresh: getData,
+          child: ListView.builder(
+              itemCount: pieces.length,
+              itemBuilder: (context, index) {
+                final piece = pieces[index];
+                final bool opened = piece.playable &&
+                    cachedFiles.contains(piece.imageIds.first.toString());
 
-              String subtitle = compositions![index].scoreNotes == null
-                  ? instrumentLabel
-                  : '$instrumentLabel - ${compositions![index].scoreNotes!}';
+                final String subtitle = [
+                  piece.instrumentLabel,
+                  if (piece.notes != null) piece.notes!,
+                  if (piece.pages > 1) '${piece.pages} Seiten',
+                ].join(' · ');
 
-              var listTile = fileId == 0
-                  ? ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.blueGrey,
-                        child: Text(collectionOrdering.toString()),
-                      ),
-                      title: Text(label),
-                      enabled: false)
-                  : ListTile(
-                      enabled: true,
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        ScorePage.routeName,
-                        arguments: ScoreArguments(
-                          fileId,
-                        ),
-                      ),
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            cached ? Colors.lightGreen : Colors.blue,
-                        child: Text(collectionOrdering.toString()),
-                      ),
-                      title: Text(label),
-                      subtitle: Text(subtitle),
-                    );
+                if (!piece.playable) {
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blueGrey,
+                      child: Text(piece.ordering.toString()),
+                    ),
+                    title: Text(piece.label),
+                    enabled: false,
+                  );
+                }
 
-              return Container(child: listTile);
-            }),
+                return ListTile(
+                  enabled: true,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    ScorePage.routeName,
+                    arguments: ScoreArguments(
+                      piece.imageIds,
+                      piece.imageRevisions,
+                      title: piece.label,
+                    ),
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: opened ? Colors.lightGreen : Colors.blue,
+                    child: Text(piece.ordering.toString()),
+                  ),
+                  title: Text(piece.label),
+                  subtitle: Text(subtitle),
+                  trailing: piece.pages > 1
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('${piece.pages}',
+                                style: TextStyle(color: Colors.grey.shade600)),
+                            const SizedBox(width: 2),
+                            Icon(Icons.auto_stories,
+                                size: 16, color: Colors.grey.shade600),
+                          ],
+                        )
+                      : null,
+                );
+              }),
+        ),
       ),
     );
   }

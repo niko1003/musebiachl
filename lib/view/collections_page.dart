@@ -23,21 +23,33 @@ class _CollectionsPageState extends State<CollectionsPage> {
     getData();
   }
 
-  //function to get Data from API
-  getData() async {
+  /// Cache first, then the server - see CollectionPage.getData for why the failure is
+  /// silent once something is already on screen.
+  Future<void> getData() async {
+    final cached = await RemoteServices().cachedCollections();
+    if (cached != null && mounted) {
+      setState(() {
+        collections = cached;
+        isLoaded = true;
+      });
+    }
+
     try {
-      collections = await RemoteServices().getCollections();
+      final fresh = await RemoteServices().fetchCollections();
+      if (!mounted) return;
+      setState(() {
+        collections = fresh;
+        isLoaded = true;
+      });
     } catch (e) {
       if (!mounted) return;
+      setState(() => isLoaded = true);
+      if (cached != null) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,
       ));
       collections = [];
-    } finally {
-      setState(() {
-        isLoaded = true;
-      });
     }
   }
 
@@ -74,7 +86,9 @@ class _CollectionsPageState extends State<CollectionsPage> {
             ],
           ),
         ),
-        child: ListView.builder(
+        child: RefreshIndicator(
+          onRefresh: getData,
+          child: ListView.builder(
             itemCount: _rows.length,
             itemBuilder: (context, index) {
               final row = _rows[index];
@@ -102,7 +116,9 @@ class _CollectionsPageState extends State<CollectionsPage> {
                 ),
                 title: Text(collection.name),
               );
-            }),
+            },
+          ),
+        ),
       ),
     );
   }

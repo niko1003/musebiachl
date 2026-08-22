@@ -12,7 +12,16 @@ import 'package:musebiachl/model/api/server_exception.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-//Class to make Network Calls
+/// Network calls, and the store that makes the app work without a signal.
+///
+/// Every list is available two ways: `cachedX()` reads what is on the device and never
+/// touches the network, `fetchX()` asks the server and writes the result back. Pages ask
+/// for both - the cache renders at once, the fetch corrects it a moment later.
+///
+/// The store used to be the *only* path: once a response was written it was returned for
+/// ever, with no expiry and nothing wired to clear it. A piece added to a Mappe never
+/// reached anyone who had opened that Mappe before. That is what the split is for -
+/// offline still works, it just stops being permanent.
 class RemoteServices {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
@@ -22,23 +31,32 @@ class RemoteServices {
   static String baseUrl = 'https://klenig.at/muse';
   static String localToken = 'not-set';
 
+  static const String _collectionsKey = 'collections';
+  static const String _instrumentGroupsKey = 'instrument-groups';
+
+  /// Deliberately not the old `collection-{1}-{uuid}`, whose literal braces came from a
+  /// mis-typed interpolation. Renaming it is also the one-time flush of everything the
+  /// unexpiring store had accumulated under the broken name.
+  static String _compositionsKey(int collectionId, String instrumentId) =>
+      'collection-$collectionId-$instrumentId';
+
   Future<Map<String, String>> createRequestHeaders() async {
     final SharedPreferences prefs = await _prefs;
     String t = prefs.getString("token") ?? localToken;
     return {"x-muse-token": t};
   }
 
-  persistAuthToken(AuthToken authToken) async {
+  Future<void> persistAuthToken(AuthToken authToken) async {
     final SharedPreferences prefs = await _prefs;
     await prefs.setString("token", authToken.token);
   }
 
-  clearAuthToken() async {
+  Future<void> clearAuthToken() async {
     final SharedPreferences prefs = await _prefs;
     await prefs.remove("token");
   }
 
-  clearAll() async {
+  Future<void> clearAll() async {
     final SharedPreferences prefs = await _prefs;
     prefs.clear();
   }
@@ -68,96 +86,84 @@ class RemoteServices {
     throw Exception(serverException.message);
   }
 
-  Future<List<CollectionComposition>?> getCollectionCompositions(
+  // --- the pieces of one Mappe, for one instrument ------------------------------
+
+  Future<List<CollectionComposition>?> cachedCollectionCompositions(
       String instrumentId, int collectionId) async {
-    final String storedKey = "collection-{$collectionId}-{$instrumentId}";
-    final SharedPreferences prefs = await _prefs;
-    String m = prefs.getString(storedKey) ?? "";
-    if (m.isNotEmpty) {
-      return collectionCompositionFromJson(m);
-    }
-
-    Uri uri = Uri.parse(
-        '$baseUrl/app/collection/$collectionId/find-for-instrument?instrumentId=$instrumentId');
-
-    Response response;
-    try {
-      response = await client
-          .get(uri, headers: await createRequestHeaders())
-          .timeout(const Duration(seconds: 15));
-    } on TimeoutException catch (_) {
-      throw Exception("cannot reach server (timeout 5 sec)");
-    }
-    //Check for response
-    String json = utf8.decode(response.bodyBytes);
-    if (response.statusCode == 200) {
-      prefs.setString(storedKey, json);
-      return collectionCompositionFromJson(json);
-    } else {
-      ServerException serverException = serverExceptionFromJson(json);
-      throw Exception(serverException.message);
-    }
+    final String stored =
+        await _read(_compositionsKey(collectionId, instrumentId));
+    return stored.isEmpty ? null : collectionCompositionFromJson(stored);
   }
 
-  Future<List<InstrumentGroup>?> getInstrumentGroups() async {
-    const String storedKey = "instrument-groups";
-    final SharedPreferences prefs = await _prefs;
-    String m = prefs.getString(storedKey) ?? "";
-    if (m.isNotEmpty) {
-      return instrumentGroupsFromJson(m);
-    }
-
-    //setup http client
-    Uri uri = Uri.parse('$baseUrl/app/instrument');
-
-    Response response;
-    try {
-      response = await client
-          .get(uri, headers: await createRequestHeaders())
-          .timeout(const Duration(seconds: 15));
-    } on TimeoutException catch (_) {
-      throw Exception("cannot reach server (timout 5 sec)");
-    }
-
-    //Check for response
-    String json = utf8.decode(response.bodyBytes);
-    if (response.statusCode == 200) {
-      prefs.setString(storedKey, json);
-      return instrumentGroupsFromJson(json);
-    } else {
-      ServerException serverException = serverExceptionFromJson(json);
-      throw Exception(serverException.message);
-    }
+  Future<List<CollectionComposition>?> fetchCollectionCompositions(
+      String instrumentId, int collectionId) async {
+    final String json = await _get(
+      '$baseUrl/app/collection/$collectionId/find-for-instrument?instrumentId=$instrumentId',
+      const Duration(seconds: 15),
+    );
+    await _write(_compositionsKey(collectionId, instrumentId), json);
+    return collectionCompositionFromJson(json);
   }
 
-  Future<List<Collection>?> getCollections() async {
-    //setup http client
-    const String storedKey = "collections";
+  // --- instruments --------------------------------------------------------------
+
+  Future<List<InstrumentGroup>?> cachedInstrumentGroups() async {
+    final String stored = await _read(_instrumentGroupsKey);
+    return stored.isEmpty ? null : instrumentGroupsFromJson(stored);
+  }
+
+  Future<List<InstrumentGroup>?> fetchInstrumentGroups() async {
+    final String json =
+        await _get('$baseUrl/app/instrument', const Duration(seconds: 15));
+    await _write(_instrumentGroupsKey, json);
+    return instrumentGroupsFromJson(json);
+  }
+
+  // --- Mappen -------------------------------------------------------------------
+
+  Future<List<Collection>?> cachedCollections() async {
+    final String stored = await _read(_collectionsKey);
+    return stored.isEmpty ? null : collectionsFromJson(stored);
+  }
+
+  Future<List<Collection>?> fetchCollections() async {
+    final String json =
+        await _get('$baseUrl/app/collection/', const Duration(seconds: 20));
+    await _write(_collectionsKey, json);
+    return collectionsFromJson(json);
+  }
+
+  // --- plumbing -----------------------------------------------------------------
+
+  Future<String> _read(String key) async {
     final SharedPreferences prefs = await _prefs;
-    String m = prefs.getString(storedKey) ?? "";
-    if (m.isNotEmpty) {
-      return collectionsFromJson(m);
-    }
+    return prefs.getString(key) ?? '';
+  }
 
-    Uri uri = Uri.parse('$baseUrl/app/collection/');
+  Future<void> _write(String key, String json) async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.setString(key, json);
+  }
 
+  /// One authenticated GET. Throws the server's own message on a non-200, so the caller
+  /// can decide whether that is worth showing - offline with something already on screen
+  /// is not.
+  Future<String> _get(String url, Duration timeout) async {
     Response response;
     try {
       response = await client
-          .get(uri, headers: await createRequestHeaders())
-          .timeout(const Duration(seconds: 20));
+          .get(Uri.parse(url), headers: await createRequestHeaders())
+          .timeout(timeout);
     } on TimeoutException catch (_) {
-      throw Exception("cannot reach server (timeout 10 sec)");
+      throw Exception('cannot reach server (timeout ${timeout.inSeconds}s)');
     }
 
-    //Check for response
-    String json = utf8.decode(response.bodyBytes);
+    final String json = utf8.decode(response.bodyBytes);
+
     if (response.statusCode == 200) {
-      prefs.setString(storedKey, json);
-      return collectionsFromJson(json);
-    } else {
-      ServerException serverException = serverExceptionFromJson(json);
-      throw Exception(serverException.message);
+      return json;
     }
+
+    throw Exception(serverExceptionFromJson(json).message);
   }
 }

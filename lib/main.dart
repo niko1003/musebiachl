@@ -37,7 +37,12 @@ class MyApp extends StatelessWidget {
           final args = settings.arguments as ScoreArguments;
           return MaterialPageRoute(
             builder: (context) {
-              return ScorePage(id: args.id);
+              return ScorePage(
+                imageIds: args.imageIds,
+                imageRevisions: args.imageRevisions,
+                index: args.index,
+                title: args.title,
+              );
             },
           );
         }

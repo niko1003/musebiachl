@@ -27,7 +27,7 @@ class _InstrumentsPageState extends State<InstrumentsPage> {
   /// Instrument ids are UUIDs; empty means nothing picked yet.
   String instrumentId = '';
 
-  persistInstrumentId(String paramInstrumentId) async {
+  Future<void> persistInstrumentId(String paramInstrumentId) async {
     final SharedPreferences prefs = await _prefs;
     await prefs.setString('instrumentId', paramInstrumentId);
     instrumentId = paramInstrumentId;
@@ -39,23 +39,34 @@ class _InstrumentsPageState extends State<InstrumentsPage> {
     getData();
   }
 
-  getData() async {
+  Future<void> getData() async {
     instrumentId = await _prefs.then((SharedPreferences prefs) {
       return prefs.getString('instrumentId') ?? '';
     });
+    final cached = await RemoteServices().cachedInstrumentGroups();
+    if (cached != null && mounted) {
+      setState(() {
+        groups = cached;
+        isLoaded = true;
+      });
+    }
+
     try {
-      groups = await RemoteServices().getInstrumentGroups();
+      final fresh = await RemoteServices().fetchInstrumentGroups();
+      if (!mounted) return;
+      setState(() {
+        groups = fresh;
+        isLoaded = true;
+      });
     } catch (e) {
       if (!mounted) return;
+      setState(() => isLoaded = true);
+      if (cached != null) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error: ${e.toString()}'),
         backgroundColor: Colors.red.shade300,
       ));
       groups = [];
-    } finally {
-      setState(() {
-        isLoaded = true;
-      });
     }
   }
 
