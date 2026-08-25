@@ -8,6 +8,49 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.11.0+25] — 2026-08-25
+
+### Added
+- **A pencil and an eraser on a page.** `ScorePage` can be marked up the way paper
+  always could — a breath, a cut, the repeat that catches you out. The marks are
+  private to the player, belong to the *page*, and are stored per user by the backend
+  (`/app/drawing`), so a new phone finds them again.
+
+  The pencil freezes the view exactly as the Lock button does; you cannot zoom and
+  draw at once, or every line would drag the page too. The eraser lifts whole strokes
+  rather than rubbing holes in them.
+
+  Every stroke writes the device copy immediately and the server copy goes up when the
+  pencil is put down, on a page turn and on leaving. Anything drawn offline goes **up**
+  before anything comes down, so the server cannot overwrite marks it has not seen.
+  Marks drawn against an older revision of a page — rotate, crop and tile all rewrite a
+  page while keeping its id — are hidden rather than laid over music they no longer fit.
+
+- **A way out.** A logout button in both Home tabs, asking first and naming who the
+  device is logged in as, because logging back in needs a signal.
+
+### Fixed
+- **A rejected token stranded the app.** There was no path back to the login screen:
+  `LoginPage` jumped straight to `HomePage` on any stored token, and a rejected one
+  produced an error bar for ever. A 401/403 now ends the session and returns to the
+  login screen with a line saying why — and *only* a 401/403 or the logout button does.
+  A timeout, a 500 or no signal at all leave the session alone, because being thrown
+  out to a login screen you cannot get past without reception is worse than any error.
+
+  The status code matters: an invalid token on `/app/**` answers **401**, not the 403
+  the security config configures — `AbstractAuthenticationProcessingFilter`'s failure
+  handler replies first.
+
+- **Non-200 responses could crash on being read.** `ServerException.fromJson` called
+  `json.decode` straight out and assigned `message` to a non-nullable String. A rejected
+  token gets Boot's own error JSON, which has no `message` at all, so the one response
+  the app most needed to understand threw a `TypeError`. Replaced by
+  `messageForResponse`, which also survives Apache's HTML and an empty body.
+
+- The username field said "Username" with a mail icon and autocapitalised the first
+  letter of a case-sensitive username. It is a username; there is no e-mail anywhere in
+  the model.
+
 ## [1.9.0+23] — 2026-08-19
 
 ### Changed

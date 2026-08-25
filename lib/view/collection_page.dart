@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:musebiachl/model/api/collection_composition.dart';
+import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
 import 'package:musebiachl/service/remote_service.dart';
+import 'package:musebiachl/service/session.dart';
 import 'package:musebiachl/view/score_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -84,6 +86,13 @@ class _CollectionPage extends State<CollectionPage> {
       });
     } catch (e) {
       if (!mounted) return;
+      // A rejected token is the one failure that is not "offline": the cached list is
+      // no use if the account behind it is gone, so this goes back to the login screen
+      // instead of staying quiet.
+      if (e is SessionExpiredException) {
+        await endSession(reason: sessionRejectedMessage);
+        return;
+      }
       setState(() => isLoaded = true);
       if (cached != null) return; // offline, and the Mappe is already on screen
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

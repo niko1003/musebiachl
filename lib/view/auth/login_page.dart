@@ -5,25 +5,24 @@ import 'package:musebiachl/view/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  /// Why the login screen is up, when it is not simply the app starting - a rejected
+  /// token, or a logout. Shown above the form, not as a SnackBar: a bar that has already
+  /// slid away by the time someone looks at the phone explains nothing.
+  final String? message;
+
+  const LoginPage({Key? key, this.message}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final RemoteServices remoteService = RemoteServices();
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   String authToken = '';
-
-  persistToken(String paramAuthToken) async {
-    final SharedPreferences prefs = await _prefs;
-    await prefs.setString('authToken', paramAuthToken);
-    authToken = paramAuthToken;
-  }
 
   @override
   void initState() {
@@ -31,7 +30,12 @@ class _LoginPageState extends State<LoginPage> {
     getData();
   }
 
-  //function to get Data from API
+  /// A stored token goes straight through to HomePage without being checked first.
+  ///
+  /// That is deliberate: verifying it would need the network, and the app has to open in
+  /// a rehearsal room with no signal. A token that is no longer good is caught by the
+  /// first real request instead - the 401/403 comes back as SessionExpiredException and
+  /// lands the player back here, with a line saying so.
   getData() async {
     authToken = await _prefs.then((SharedPreferences prefs) {
       return prefs.getString('token') ?? '';
@@ -48,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> login() async {
     try {
       AuthToken authToken = await remoteService.login(
-        emailController.text,
+        usernameController.text.trim(),
         passwordController.text,
       );
 
@@ -97,23 +101,39 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(
                       height: 16,
                     ),
+                    if (widget.message != null)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(widget.message!),
+                      ),
                     TextField(
-                      controller: emailController,
+                      controller: usernameController,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      textCapitalization: TextCapitalization.none,
                       onChanged: (value) {
                         setState(() {});
                       },
                       decoration: InputDecoration(
-                        // icon: Icon(Icons.mail),
-                        prefixIcon: const Icon(Icons.mail),
-                        suffixIcon: emailController.text.isEmpty
+                        // Not Icons.mail: there is no e-mail address anywhere in the
+                        // model, and a phone that autocapitalises the first letter of a
+                        // case-sensitive username is its own support ticket.
+                        prefixIcon: const Icon(Icons.person),
+                        suffixIcon: usernameController.text.isEmpty
                             ? const Text('')
                             : GestureDetector(
                                 onTap: () {
-                                  emailController.clear();
+                                  usernameController.clear();
                                 },
                                 child: const Icon(Icons.close)),
-                        hintText: 'TK Muse',
-                        labelText: 'Username',
+                        hintText: 'Benutzername',
+                        labelText: 'Benutzername',
                       ),
                     ),
                     const SizedBox(
@@ -133,8 +153,8 @@ class _LoginPageState extends State<LoginPage> {
                             child: Icon(isVisible
                                 ? Icons.visibility
                                 : Icons.visibility_off)),
-                        hintText: 'type your password',
-                        labelText: 'Password',
+                        hintText: 'Passwort',
+                        labelText: 'Passwort',
                       ),
                     ),
                     const SizedBox(
@@ -145,7 +165,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
-                          child: Text('Login'),
+                          child: Text('Anmelden'),
                         ))
                   ],
                 ),

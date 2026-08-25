@@ -9,6 +9,8 @@ import 'package:musebiachl/model/api/collection.dart';
 import 'package:musebiachl/model/api/instrument.dart';
 import 'package:musebiachl/model/api/collection_composition.dart';
 import 'package:musebiachl/model/api/server_exception.dart';
+import 'package:musebiachl/model/api/session_expired_exception.dart';
+import 'package:musebiachl/model/api/user_drawing.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -49,16 +51,30 @@ class RemoteServices {
   Future<void> persistAuthToken(AuthToken authToken) async {
     final SharedPreferences prefs = await _prefs;
     await prefs.setString("token", authToken.token);
+    await prefs.setString("username", authToken.username);
   }
 
-  Future<void> clearAuthToken() async {
+  Future<String> currentUsername() async {
+    final SharedPreferences prefs = await _prefs;
+    return prefs.getString("username") ?? '';
+  }
+
+  /// Ends the session on this device.
+  ///
+  /// The token, the name it belongs to, and the instrument that person picked - the
+  /// phone may well be handed to someone else next. The cached Mappen and the
+  /// instrument list stay: that is the same library for everyone, and keeping it is
+  /// what lets the next login work in a rehearsal room with no signal.
+  ///
+  /// localToken has to go with it. createRequestHeaders falls back to it when the
+  /// store has no token, so leaving it set would keep sending the token that was just
+  /// thrown away.
+  Future<void> clearSession() async {
     final SharedPreferences prefs = await _prefs;
     await prefs.remove("token");
-  }
-
-  Future<void> clearAll() async {
-    final SharedPreferences prefs = await _prefs;
-    prefs.clear();
+    await prefs.remove("username");
+    await prefs.remove("instrumentId");
+    localToken = 'not-set';
   }
 
   Future<AuthToken> login(String username, String password) async {
@@ -82,8 +98,7 @@ class RemoteServices {
       return authToken;
     }
 
-    ServerException serverException = serverExceptionFromJson(json);
-    throw Exception(serverException.message);
+    throw Exception(messageForResponse(json, response.statusCode));
   }
 
   // --- the pieces of one Mappe, for one instrument ------------------------------
@@ -133,6 +148,64 @@ class RemoteServices {
     return collectionsFromJson(json);
   }
 
+  // --- the player's own pencil marks ---------------------------------------------
+
+  /// Per user *and* per image, so a phone that gets handed on does not show one player's
+  /// markings to the next. Keying on the name rather than clearing the lot at logout is
+  /// also what lets someone log back in and still find what they drew offline.
+  static String _drawingKey(String username, int imageId) =>
+      'drawing-$username-$imageId';
+
+  Future<UserDrawing?> cachedDrawing(int imageId) async {
+    final SharedPreferences prefs = await _prefs;
+    final String stored =
+        prefs.getString(_drawingKey(await currentUsername(), imageId)) ?? '';
+    if (stored.isEmpty) return null;
+
+    try {
+      return UserDrawing.fromJson(json.decode(stored));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeDrawingCache(UserDrawing drawing) async {
+    final SharedPreferences prefs = await _prefs;
+    final String key = _drawingKey(await currentUsername(), drawing.imageId);
+
+    if (drawing.isEmpty && !drawing.pending) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, json.encode(drawing.toJson()));
+  }
+
+  /// One request for every page of the part being opened.
+  Future<List<UserDrawing>> fetchDrawings(List<int> imageIds) async {
+    if (imageIds.isEmpty) return const [];
+
+    final String ids = imageIds.join(',');
+    final String body = await _get(
+      '$baseUrl/app/drawing?imageIds=$ids',
+      const Duration(seconds: 10),
+    );
+    return userDrawingsFromJson(body);
+  }
+
+  /// Sends one page up. Empty strokes delete it server-side, which is what rubbing a page
+  /// clean has to mean.
+  Future<UserDrawing> putDrawing(UserDrawing drawing) async {
+    final String body = await _put(
+      '$baseUrl/app/drawing/${drawing.imageId}',
+      {
+        'strokes': strokesToJson(drawing.strokes),
+        'imageRevision': drawing.imageRevision,
+      },
+      const Duration(seconds: 10),
+    );
+    return UserDrawing.fromJson(json.decode(body));
+  }
+
   // --- plumbing -----------------------------------------------------------------
 
   Future<String> _read(String key) async {
@@ -145,9 +218,39 @@ class RemoteServices {
     await prefs.setString(key, json);
   }
 
-  /// One authenticated GET. Throws the server's own message on a non-200, so the caller
-  /// can decide whether that is worth showing - offline with something already on screen
-  /// is not.
+  /// One authenticated PUT of a JSON body. Same rules as _get about what it throws.
+  Future<String> _put(String url, Object body, Duration timeout) async {
+    Response response;
+    try {
+      final Map<String, String> headers = await createRequestHeaders();
+      headers['Content-Type'] = 'application/json';
+
+      response = await client
+          .put(Uri.parse(url), headers: headers, body: json.encode(body))
+          .timeout(timeout);
+    } on TimeoutException catch (_) {
+      throw Exception('cannot reach server (timeout ${timeout.inSeconds}s)');
+    }
+
+    final String responseBody = utf8.decode(response.bodyBytes);
+
+    if (response.statusCode == 200) {
+      return responseBody;
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw SessionExpiredException();
+    }
+
+    throw Exception(messageForResponse(responseBody, response.statusCode));
+  }
+
+  /// One authenticated GET.
+  ///
+  /// Throws the server's own message on a non-200, so the caller can decide whether that
+  /// is worth showing - offline with something already on screen is not. The exception
+  /// is a rejected token, which comes back typed as SessionExpiredException: that one the
+  /// caller must act on rather than sit out.
   Future<String> _get(String url, Duration timeout) async {
     Response response;
     try {
@@ -164,6 +267,14 @@ class RemoteServices {
       return json;
     }
 
-    throw Exception(serverExceptionFromJson(json).message);
+    // 401 and not just 403: the /app/** filter fails authentication inside
+    // AbstractAuthenticationProcessingFilter, whose default failure handler sends 401
+    // long before SecurityConfig's 403 entry point is ever consulted. Both mean the
+    // same thing here - this token is no good any more.
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw SessionExpiredException();
+    }
+
+    throw Exception(messageForResponse(json, response.statusCode));
   }
 }

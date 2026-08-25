@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'dart:async';
 import 'package:musebiachl/model/api/instrument.dart';
+import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/service/remote_service.dart';
+import 'package:musebiachl/service/session.dart';
+import 'package:musebiachl/view/logout_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Replaces the old musician picker: the player selects the instrument they play,
@@ -60,6 +63,13 @@ class _InstrumentsPageState extends State<InstrumentsPage> {
       });
     } catch (e) {
       if (!mounted) return;
+      // A rejected token is the one failure that is not "offline": the cached list is
+      // no use if the account behind it is gone, so this goes back to the login screen
+      // instead of staying quiet.
+      if (e is SessionExpiredException) {
+        await endSession(reason: sessionRejectedMessage);
+        return;
+      }
       setState(() => isLoaded = true);
       if (cached != null) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -80,6 +90,7 @@ class _InstrumentsPageState extends State<InstrumentsPage> {
       appBar: AppBar(
         title: const Text('Instrument auswählen.'),
         centerTitle: true,
+        actions: const [LogoutButton()],
       ),
       body: Visibility(
         visible: isLoaded,

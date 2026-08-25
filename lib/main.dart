@@ -4,6 +4,7 @@ import 'package:musebiachl/model/arg/collection_arguments.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
 import 'package:musebiachl/view/collection_page.dart';
 import 'package:musebiachl/view/score_page.dart';
+import 'package:musebiachl/service/session.dart';
 import 'package:musebiachl/view/auth/login_page.dart';
 
 void main() => runApp(const MyApp());
@@ -16,6 +17,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Muse Biachl',
+      // endSession() needs a navigator it can reach from the service layer: a token is
+      // rejected inside whatever request is in flight, not on a page that has a context
+      // to hand.
+      navigatorKey: appNavigatorKey,
       onGenerateRoute: (settings) {
         // If you push the PassArguments route
         if (settings.name == CollectionPage.routeName) {

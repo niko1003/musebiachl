@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:musebiachl/model/api/collection.dart';
+import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/model/arg/collection_arguments.dart';
 import 'package:musebiachl/service/remote_service.dart';
+import 'package:musebiachl/service/session.dart';
 import 'package:musebiachl/view/collection_page.dart';
+import 'package:musebiachl/view/logout_button.dart';
 
 class CollectionsPage extends StatefulWidget {
   const CollectionsPage({Key? key}) : super(key: key);
@@ -43,6 +46,13 @@ class _CollectionsPageState extends State<CollectionsPage> {
       });
     } catch (e) {
       if (!mounted) return;
+      // A rejected token is the one failure that is not "offline": the cached list is
+      // no use if the account behind it is gone, so this goes back to the login screen
+      // instead of staying quiet.
+      if (e is SessionExpiredException) {
+        await endSession(reason: sessionRejectedMessage);
+        return;
+      }
       setState(() => isLoaded = true);
       if (cached != null) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -73,6 +83,7 @@ class _CollectionsPageState extends State<CollectionsPage> {
       appBar: AppBar(
         title: const Text('Mappe auswählen.'),
         centerTitle: true,
+        actions: const [LogoutButton()],
       ),
       body: Visibility(
         visible: isLoaded,
