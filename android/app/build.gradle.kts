@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.klenig.musebiachl"
+        applicationId = "at.klenig.musebiachl"
         // 25 rather than flutter.minSdkVersion: this app has always required 7.1.
         minSdk = 25
         targetSdk = flutter.targetSdkVersion
