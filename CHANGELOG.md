@@ -8,6 +8,50 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.12.0+28] — 2026-09-24
+
+Needs muse-server 4.36.0.
+
+### Changed
+- **The Mappe comes first, and the Stimme second.** The app used to open on an instrument
+  picker and show no music until one was chosen; now it opens on the Sammlungen, and
+  tapping one asks which line of *that* Mappe to read.
+
+  That is the order the question actually has. Which Mappe is on the stand is what a player
+  knows; which Stimme they read is a question only that Mappe can pose — a Marschbuch whose
+  pages carry "1. in B" has no opinion about instruments at all, and somebody who reads the
+  1. in one Mappe is routinely handed the 3. in the next.
+
+  The pick screen offers **what the Sammlung really holds** (`/app/collection/{id}/selections`):
+  its Stimmen, its instruments, its registers, each with the number of pages carrying that
+  assignment. Nothing is guessed and nothing is invented.
+
+- **A player says what they play, once, and it belongs to their account.** The second tab
+  is **Mein Instrument**: a register — Flügelhorn, Klarinette, Schlagwerk — and optionally
+  the exact instrument. It is stored on the account (`/app/profile`), not on the phone, so
+  a new device finds it again and the admin can set it over the telephone.
+
+  In every Sammlung that register is listed **first**, with that instrument at the top of
+  it. It deliberately does not pick a Stimme: no register says whether somebody plays the
+  1. or the 3., so a Stimmen-assigned Mappe is a decision every time. What the app does
+  remember is the line picked in that Mappe last time, marked *zuletzt* — a hint, not an
+  answer.
+
+  An `instrumentId` left behind by 1.11.0 is adopted as the favorite on first start, so
+  upgrading does not lose what somebody picked.
+
+- **The whole UI has been reworked.** Material 3 in brass rather than the framework's blue,
+  a dark theme that follows the device — a phone on a music stand in a darkened hall is the
+  normal case — section headers, icons per Sammlungsart, a search box on the Sammlungen and
+  on the pieces of a Mappe, and real empty states instead of a blank list. ScorePage is
+  untouched: it paints its own black viewer and always did.
+
+- **⇄ in the Mappe swaps Stimme** without walking back through the Sammlungen.
+
+### Removed
+- The Instrumente tab, and with it the rule that nothing could be opened before an
+  instrument was chosen.
+
 ## [1.11.0+25] — 2026-08-25
 
 ### Added

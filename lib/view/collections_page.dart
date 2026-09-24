@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 
 import 'package:musebiachl/model/api/collection.dart';
 import 'package:musebiachl/model/api/session_expired_exception.dart';
-import 'package:musebiachl/model/arg/collection_arguments.dart';
+import 'package:musebiachl/model/arg/selection_arguments.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/service/session.dart';
-import 'package:musebiachl/view/collection_page.dart';
+import 'package:musebiachl/theme.dart';
+import 'package:musebiachl/view/collection_selection_page.dart';
 import 'package:musebiachl/view/logout_button.dart';
 
+/// Every Mappe the orchestra has, grouped by what it is.
+///
+/// The first screen of the app: tapping one asks which Stimme of it to read.
 class CollectionsPage extends StatefulWidget {
   const CollectionsPage({Key? key}) : super(key: key);
 
@@ -15,15 +19,25 @@ class CollectionsPage extends StatefulWidget {
   State<CollectionsPage> createState() => _CollectionsPageState();
 }
 
-//
 class _CollectionsPageState extends State<CollectionsPage> {
   List<Collection>? collections;
   var isLoaded = false;
+
+  /// Local filtering only - the whole list is on the device anyway, and a Sammlung is
+  /// found by a word of its name much faster than by scrolling past 30 of them.
+  final TextEditingController _search = TextEditingController();
+  bool _searching = false;
 
   @override
   void initState() {
     super.initState();
     getData();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
   }
 
   /// Cache first, then the server - see CollectionPage.getData for why the failure is
@@ -63,13 +77,30 @@ class _CollectionsPageState extends State<CollectionsPage> {
     }
   }
 
+  static IconData _iconFor(CollectionType type) {
+    switch (type) {
+      case CollectionType.concertFolder:
+        return Icons.folder_special_outlined;
+      case CollectionType.marchBook:
+        return Icons.directions_walk;
+      case CollectionType.anthology:
+        return Icons.library_music_outlined;
+      case CollectionType.booklet:
+        return Icons.menu_book_outlined;
+    }
+  }
+
   /// One flat list of section headers (CollectionType) and entries (Collection),
   /// in the enum's own order, so ListView.builder can render both.
   List<Object> get _rows {
+    final String term = _search.text.trim().toLowerCase();
+
     final rows = <Object>[];
     for (final type in CollectionType.values) {
-      final inType =
-          (collections ?? []).where((entry) => entry.type == type).toList();
+      final inType = (collections ?? [])
+          .where((entry) => entry.type == type)
+          .where((entry) => term.isEmpty || entry.name.toLowerCase().contains(term))
+          .toList();
       if (inType.isEmpty) continue;
       rows.add(type);
       rows.addAll(inType);
@@ -77,60 +108,86 @@ class _CollectionsPageState extends State<CollectionsPage> {
     return rows;
   }
 
+  void _open(Collection collection) {
+    Navigator.pushNamed(
+      context,
+      CollectionSelectionPage.routeName,
+      arguments: SelectionArguments(collection.id, collection.name),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final rows = _rows;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mappe auswählen.'),
-        centerTitle: true,
-        actions: const [LogoutButton()],
-      ),
-      body: Visibility(
-        visible: isLoaded,
-        replacement: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Loading Collection from API'),
-              SizedBox(height: 10.0),
-              CircularProgressIndicator()
-            ],
-          ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: getData,
-          child: ListView.builder(
-            itemCount: _rows.length,
-            itemBuilder: (context, index) {
-              final row = _rows[index];
-
-              if (row is CollectionType) {
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 4.0),
-                  child: Text(
-                    row.label,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                  ),
-                );
-              }
-
-              final collection = row as Collection;
-
-              return ListTile(
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  CollectionPage.routeName,
-                  arguments:
-                      CollectionArguments(collection.id, collection.name),
+        title: _searching
+            ? TextField(
+                controller: _search,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: 'Sammlung suchen…',
+                  border: InputBorder.none,
                 ),
-                title: Text(collection.name),
-              );
-            },
+                onChanged: (_) => setState(() {}),
+              )
+            : const Text('Sammlungen'),
+        actions: [
+          IconButton(
+            icon: Icon(_searching ? Icons.close : Icons.search),
+            tooltip: _searching ? 'Suche schließen' : 'Suchen',
+            onPressed: () => setState(() {
+              _searching = !_searching;
+              if (!_searching) _search.clear();
+            }),
           ),
-        ),
+          const LogoutButton(),
+        ],
       ),
+      body: !isLoaded
+          ? const LoadingBody('Loading Collections from API')
+          : RefreshIndicator(
+              onRefresh: getData,
+              child: rows.isEmpty
+                  ? EmptyBody(
+                      icon: Icons.library_music_outlined,
+                      title: _search.text.trim().isEmpty
+                          ? 'Noch keine Sammlung angelegt.'
+                          : 'Keine Sammlung mit »${_search.text.trim()}«.',
+                      hint: _search.text.trim().isEmpty
+                          ? 'Mappen und Marschbücher werden im MuseAdmin zusammengestellt.'
+                          : null,
+                    )
+                  : ListView.separated(
+                      itemCount: rows.length,
+                      separatorBuilder: (context, index) =>
+                          rows[index] is CollectionType || index + 1 >= rows.length || rows[index + 1] is CollectionType
+                              ? const SizedBox.shrink()
+                              : const Divider(indent: 68, endIndent: 16),
+                      itemBuilder: (context, index) {
+                        final row = rows[index];
+
+                        if (row is CollectionType) {
+                          return SectionHeader(row.label);
+                        }
+
+                        final collection = row as Collection;
+
+                        return ListTile(
+                          onTap: () => _open(collection),
+                          leading: Icon(_iconFor(collection.type), color: scheme.primary),
+                          title: Text(
+                            collection.name,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          trailing: Icon(Icons.chevron_right, color: scheme.outline),
+                        );
+                      },
+                    ),
+            ),
     );
   }
 }
