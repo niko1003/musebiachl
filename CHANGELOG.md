@@ -8,7 +8,7 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
-## [1.15.0+32] — 2026-09-24
+## [1.14.0+32] — 2026-09-24
 
 Works against any server the 1.12.0 app works against.
 
