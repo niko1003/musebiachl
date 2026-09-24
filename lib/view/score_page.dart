@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -50,7 +51,7 @@ class ScorePage extends StatefulWidget {
   State<ScorePage> createState() => _ScorePageState();
 }
 
-class _ScorePageState extends State<ScorePage> {
+class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final RemoteServices _remote = RemoteServices();
 
@@ -59,6 +60,11 @@ class _ScorePageState extends State<ScorePage> {
 
   bool locked = false;
   bool drawing = false;
+
+  /// Whether the buttons are on the page. A tap on the page takes them and the status bar
+  /// away, so the music gets the whole screen; the next tap brings them back.
+  bool chrome = true;
+
   _Tool tool = _Tool.pen;
 
   bool get erasing => tool == _Tool.eraser;
@@ -93,6 +99,7 @@ class _ScorePageState extends State<ScorePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     current = widget.index;
     pageController = PageController(initialPage: widget.index);
@@ -112,9 +119,20 @@ class _ScorePageState extends State<ScorePage> {
     // local cache), this is only the copy going up to the server.
     _pushAll();
     pageController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     WakelockPlus.disable();
+    _showSystemBars();
     locked = false;
     super.dispose();
+  }
+
+  /// iOS resets the idle timer whenever the app leaves the foreground - a glance at a
+  /// message, Control Center, the lock button - so enabling it once in initState keeps
+  /// the screen on only until the first interruption. Back on the music stand it has to
+  /// be switched on again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) WakelockPlus.enable();
   }
 
   /// The green-avatar bookkeeping: which pages this player has actually opened. Every
@@ -492,6 +510,21 @@ class _ScorePageState extends State<ScorePage> {
     );
   }
 
+  void _toggleChrome() {
+    setState(() => chrome = !chrome);
+    if (chrome) {
+      _showSystemBars();
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+  }
+
+  /// Flutter's own default, which is what every other screen of the app runs in.
+  void _showSystemBars() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values);
+  }
+
   void lock() {
     setState(() => locked = !locked);
   }
@@ -517,119 +550,128 @@ class _ScorePageState extends State<ScorePage> {
     return Stack(
       children: <Widget>[
         Positioned.fill(
-          child: PhotoViewGallery.builder(
-            itemCount: count,
-            pageController: pageController,
-            // Locking freezes the page turn as well as the zoom - on a music stand the
-            // point is that nothing moves when the page is brushed. The pencil freezes
-            // it too, or every line drawn would also drag the page.
-            scrollPhysics: locked || drawing
-                ? const NeverScrollableScrollPhysics()
-                : const ClampingScrollPhysics(),
-            onPageChanged: (index) {
-              setState(() => current = index);
-              persistFile(widget.imageIds[index]);
-              _pushAll();
-            },
-            backgroundDecoration: const BoxDecoration(color: Colors.black),
-            builder: (context, index) {
-              final int imageId = widget.imageIds[index];
-              _ensureSize(index, imageId);
-              final Size? size = _imageSizes[imageId];
+          // Locked, PhotoView switches its gestures off - its tap included - so the tap
+          // that toggles the buttons is caught out here instead. Unlocked it is left to
+          // PhotoView, whose detector tells a tap from the double tap that zooms.
+          child: GestureDetector(
+            onTap: locked && !drawing ? _toggleChrome : null,
+            child: PhotoViewGallery.builder(
+              itemCount: count,
+              pageController: pageController,
+              // Locking freezes the page turn as well as the zoom - on a music stand the
+              // point is that nothing moves when the page is brushed. The pencil freezes
+              // it too, or every line drawn would also drag the page.
+              scrollPhysics: locked || drawing
+                  ? const NeverScrollableScrollPhysics()
+                  : const ClampingScrollPhysics(),
+              onPageChanged: (index) {
+                setState(() => current = index);
+                persistFile(widget.imageIds[index]);
+                _pushAll();
+              },
+              backgroundDecoration: const BoxDecoration(color: Colors.black),
+              builder: (context, index) {
+                final int imageId = widget.imageIds[index];
+                _ensureSize(index, imageId);
+                final Size? size = _imageSizes[imageId];
 
-              if (size == null) {
+                if (size == null) {
+                  return PhotoViewGalleryPageOptions.customChild(
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                    disableGestures: true,
+                  );
+                }
+
+                // customChild rather than imageProvider: it puts the marks *inside* the
+                // transform, so they zoom and pan with the page and a finger on the page
+                // arrives in page coordinates. Doing it over the top instead would mean
+                // re-deriving the transform on every frame and getting it wrong.
                 return PhotoViewGalleryPageOptions.customChild(
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
-                  disableGestures: true,
+                  child: _page(index, imageId, size),
+                  childSize: size,
+                  initialScale: PhotoViewComputedScale.contained,
+                  minScale: PhotoViewComputedScale.contained * 0.8,
+                  maxScale: PhotoViewComputedScale.covered * 1.8,
+                  basePosition: Alignment.center,
+                  disableGestures: locked || drawing,
+                  onTapUp: drawing ? null : (_, _, _) => _toggleChrome(),
                 );
-              }
-
-              // customChild rather than imageProvider: it puts the marks *inside* the
-              // transform, so they zoom and pan with the page and a finger on the page
-              // arrives in page coordinates. Doing it over the top instead would mean
-              // re-deriving the transform on every frame and getting it wrong.
-              return PhotoViewGalleryPageOptions.customChild(
-                child: _page(index, imageId, size),
-                childSize: size,
-                initialScale: PhotoViewComputedScale.contained,
-                minScale: PhotoViewComputedScale.contained * 0.8,
-                maxScale: PhotoViewComputedScale.covered * 1.8,
-                basePosition: Alignment.center,
-                disableGestures: locked || drawing,
-              );
-            },
+              },
+            ),
           ),
         ),
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                style: ButtonStyle(
-                  backgroundColor:
-                      WidgetStateProperty.all(Colors.white.withValues(alpha: 0.8)),
-                  foregroundColor: WidgetStateProperty.all(Colors.black),
-                  padding: WidgetStateProperty.all(
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+        if (chrome)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  style: ButtonStyle(
+                    backgroundColor:
+                        WidgetStateProperty.all(Colors.white.withValues(alpha: 0.8)),
+                    foregroundColor: WidgetStateProperty.all(Colors.black),
+                    padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.arrow_back, size: 18),
+                      SizedBox(width: 4),
+                      Text('Zurück', style: TextStyle(fontFamily: bodyFont)),
+                    ],
+                  ),
                 ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Row(
+              ),
+            ),
+          ),
+        if (chrome)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.arrow_back, size: 18),
-                    SizedBox(width: 4),
-                    Text('Zurück', style: TextStyle(fontFamily: bodyFont)),
+                    // The lock is about holding the page still; the pencil already does
+                    // that, so showing both would be two buttons for one state.
+                    if (!drawing)
+                      ElevatedButton(
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              locked ? Colors.green : Colors.red),
+                          foregroundColor: WidgetStateProperty.all(Colors.white),
+                          padding:
+                              WidgetStateProperty.all(const EdgeInsets.all(10)),
+                        ),
+                        onPressed: lock,
+                        child: Icon(locked ? Icons.lock : Icons.lock_open,
+                            size: 18),
+                      ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.all(
+                            drawing ? Colors.amber.shade700 : Colors.white.withValues(alpha: 0.8)),
+                        foregroundColor: WidgetStateProperty.all(
+                            drawing ? Colors.white : Colors.black),
+                        padding: WidgetStateProperty.all(const EdgeInsets.all(10)),
+                      ),
+                      onPressed: _toggleDrawing,
+                      child: const Icon(Icons.edit, size: 18),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-        SafeArea(
-          child: Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // The lock is about holding the page still; the pencil already does
-                  // that, so showing both would be two buttons for one state.
-                  if (!drawing)
-                    ElevatedButton(
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(
-                            locked ? Colors.green : Colors.red),
-                        foregroundColor: WidgetStateProperty.all(Colors.white),
-                        padding:
-                            WidgetStateProperty.all(const EdgeInsets.all(10)),
-                      ),
-                      onPressed: lock,
-                      child: Icon(locked ? Icons.lock : Icons.lock_open,
-                          size: 18),
-                    ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(
-                          drawing ? Colors.amber.shade700 : Colors.white.withValues(alpha: 0.8)),
-                      foregroundColor: WidgetStateProperty.all(
-                          drawing ? Colors.white : Colors.black),
-                      padding: WidgetStateProperty.all(const EdgeInsets.all(10)),
-                    ),
-                    onPressed: _toggleDrawing,
-                    child: const Icon(Icons.edit, size: 18),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
 
         if (_stale.contains(currentImageId))
           SafeArea(
@@ -724,9 +766,9 @@ class _ScorePageState extends State<ScorePage> {
             ),
           ),
 
-        // Only worth the space when there is something to turn to, and only when the
-        // pencil is not using that corner.
-        if (count > 1 && !drawing)
+        // Only worth the space when there is something to turn to, only when the pencil
+        // is not using that corner, and not in full screen.
+        if (count > 1 && !drawing && chrome)
           SafeArea(
             child: Align(
               alignment: Alignment.bottomCenter,

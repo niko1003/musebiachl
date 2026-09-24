@@ -8,6 +8,23 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.14.0+32] — 2026-09-24
+
+Works against any server the 1.12.0 app works against.
+
+### Added
+- **Full screen on the Noten.** A tap on the page hides the buttons, the page count and
+  the status bar; the next tap brings them back. It works on a locked page too, and not
+  while the pencil is out, where a tap writes a word instead.
+- **The iPhone turns.** Landscape was allowed on the iPad only; now the whole app follows
+  the phone as well.
+
+### Fixed
+- **The screen stays on while a Stimme is open.** It was only switched on when the page
+  opened, and iOS switches it off whenever the app leaves the foreground — a message, the
+  Control Center, the lock button — so after the first interruption the screen dimmed in
+  the middle of a piece.
+
 ## [1.14.0+31] — 2026-09-24
 
 Works against any server the 1.12.0 app works against.
