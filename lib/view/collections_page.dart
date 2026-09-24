@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:musebiachl/model/api/collection.dart';
 import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/model/arg/selection_arguments.dart';
+import 'package:musebiachl/service/offline_store.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/service/session.dart';
 import 'package:musebiachl/theme.dart';
 import 'package:musebiachl/view/collection_selection_page.dart';
 import 'package:musebiachl/view/logout_button.dart';
+import 'package:musebiachl/view/offline_button.dart';
 
 /// Every Mappe the orchestra has, grouped by what it is.
 ///
@@ -43,6 +45,7 @@ class _CollectionsPageState extends State<CollectionsPage> {
   /// Cache first, then the server - see CollectionPage.getData for why the failure is
   /// silent once something is already on screen.
   Future<void> getData() async {
+    await OfflineStore.load();
     final cached = await RemoteServices().cachedCollections();
     if (cached != null && mounted) {
       setState(() {
@@ -147,46 +150,66 @@ class _CollectionsPageState extends State<CollectionsPage> {
           const LogoutButton(),
         ],
       ),
+      // The offline marks come out of the store, which changes while a download runs in
+      // a Sammlung two screens away.
       body: !isLoaded
           ? const LoadingBody('Loading Collections from API')
-          : RefreshIndicator(
-              onRefresh: getData,
-              child: rows.isEmpty
-                  ? EmptyBody(
-                      icon: Icons.library_music_outlined,
-                      title: _search.text.trim().isEmpty
-                          ? 'Noch keine Sammlung angelegt.'
-                          : 'Keine Sammlung mit »${_search.text.trim()}«.',
-                      hint: _search.text.trim().isEmpty
-                          ? 'Mappen und Marschbücher werden im MuseAdmin zusammengestellt.'
-                          : null,
-                    )
-                  : ListView.separated(
-                      itemCount: rows.length,
-                      separatorBuilder: (context, index) =>
-                          rows[index] is CollectionType || index + 1 >= rows.length || rows[index + 1] is CollectionType
-                              ? const SizedBox.shrink()
-                              : const Divider(indent: 68, endIndent: 16),
-                      itemBuilder: (context, index) {
-                        final row = rows[index];
+          : ValueListenableBuilder<int>(
+              valueListenable: OfflineStore.changes,
+              builder: (context, _, _) => RefreshIndicator(
+                onRefresh: getData,
+                child: rows.isEmpty
+                    ? EmptyBody(
+                        icon: Icons.library_music_outlined,
+                        title: _search.text.trim().isEmpty
+                            ? 'Noch keine Sammlung angelegt.'
+                            : 'Keine Sammlung mit »${_search.text.trim()}«.',
+                        hint: _search.text.trim().isEmpty
+                            ? 'Mappen und Marschbücher werden im MuseAdmin zusammengestellt.'
+                            : null,
+                      )
+                    : ListView.separated(
+                        itemCount: rows.length,
+                        separatorBuilder: (context, index) =>
+                            rows[index] is CollectionType || index + 1 >= rows.length || rows[index + 1] is CollectionType
+                                ? const SizedBox.shrink()
+                                : const Divider(indent: 68, endIndent: 16),
+                        itemBuilder: (context, index) {
+                          final row = rows[index];
 
-                        if (row is CollectionType) {
-                          return SectionHeader(row.label);
-                        }
+                          if (row is CollectionType) {
+                            return SectionHeader(row.label);
+                          }
 
-                        final collection = row as Collection;
+                          final collection = row as Collection;
+                          final List<OfflineSelection> offline =
+                              OfflineStore.inCollection(collection.id);
 
-                        return ListTile(
-                          onTap: () => _open(collection),
-                          leading: Icon(_iconFor(collection.type), color: scheme.primary),
-                          title: Text(
-                            collection.name,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          trailing: Icon(Icons.chevron_right, color: scheme.outline),
-                        );
-                      },
-                    ),
+                          return ListTile(
+                            onTap: () => _open(collection),
+                            leading: Icon(_iconFor(collection.type), color: scheme.primary),
+                            title: Text(
+                              collection.name,
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            // Which Stimme, not only that there is one: a phone holding the
+                            // 3. Trompete of this Mappe has nothing for the player who reads
+                            // the 1., and the difference is worth a line.
+                            subtitle: offline.isEmpty
+                                ? null
+                                : Padding(
+                                    padding: const EdgeInsets.only(top: 3),
+                                    child: OfflineMark(
+                                      size: 15,
+                                      complete: offline.every((saved) => saved.complete),
+                                      label: offline.map((saved) => saved.label).join(' · '),
+                                    ),
+                                  ),
+                            trailing: Icon(Icons.chevron_right, color: scheme.outline),
+                          );
+                        },
+                      ),
+              ),
             ),
     );
   }

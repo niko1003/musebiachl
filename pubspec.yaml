@@ -1,6 +1,6 @@
 name: musebiachl
 description: Displaying music sheets for musicians of a wind / brass band.
-version: 1.12.0+29
+version: 1.13.0+30
 
 
 # The following line prevents the package from being accidentally published to
@@ -28,6 +28,13 @@ dependencies:
   http: ^1.6.0
   photo_view: ^0.15.0
   cached_network_image: ^3.4.1
+  # Direct, because a Stimme made available offline is downloaded into a cache manager of
+  # our own (MusePages) rather than the package's default one - see offline_store.dart.
+  flutter_cache_manager: ^3.4.2
+  # Only for that store's file system: the pages belong in the application support
+  # directory, not the temporary one Android empties by itself.
+  path_provider: ^2.1.6
+  file: ^7.0.1
   shared_preferences: ^2.5.5
   wakelock_plus: ^1.7.0
 

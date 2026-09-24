@@ -3,9 +3,11 @@ import 'package:musebiachl/model/api/collection_composition.dart';
 import 'package:musebiachl/model/api/collection_selection.dart';
 import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/model/arg/score_arguments.dart';
+import 'package:musebiachl/service/offline_store.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/service/session.dart';
 import 'package:musebiachl/theme.dart';
+import 'package:musebiachl/view/offline_button.dart';
 import 'package:musebiachl/view/score_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,6 +36,14 @@ class _Piece {
 
   bool get playable => imageIds.isNotEmpty;
   int get pages => imageIds.length;
+
+  /// How the pages of this piece are named in the offline store - the same key ScorePage
+  /// puts on the image provider, which is what makes a downloaded page the one it shows.
+  List<String> get keys => [
+        for (int i = 0; i < imageIds.length; i++)
+          OfflineStore.imageKey(
+              imageIds[i], i < imageRevisions.length ? imageRevisions[i] : 0)
+      ];
 
   /// What the leading badge says: a piece of a Heft is numbered inside the Heft.
   int? get number => bookletLabel == null ? ordering : pieceOrdering;
@@ -109,6 +119,7 @@ class _CollectionPage extends State<CollectionPage> {
   /// request while something is already showing is *silent* - that is the offline
   /// feature doing its job, not an error worth a red bar during a rehearsal.
   Future<void> getData() async {
+    await OfflineStore.load();
     final SharedPreferences prefs = await _prefs;
     cachedFiles = prefs.getStringList('cached-files') ?? List.empty();
 
@@ -213,10 +224,28 @@ class _CollectionPage extends State<CollectionPage> {
     return rows;
   }
 
+  /// Every page this line has, whatever the search box is currently hiding.
+  List<String> get _allKeys => [
+        for (final row in compositions ?? <CollectionComposition>[])
+          if (row.imageId != 0) OfflineStore.imageKey(row.imageId, row.imageRevision)
+      ];
+
+  /// The whole screen is rebuilt from the offline store, not only the list: the title
+  /// says whether this Stimme is here, and a download started on this screen goes on
+  /// running when it is left and has to be found still going when it is opened again.
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: OfflineStore.changes,
+      builder: (context, _, _) => _scaffold(context),
+    );
+  }
+
+  Widget _scaffold(BuildContext context) {
     final rows = _rows;
     final ColorScheme scheme = Theme.of(context).colorScheme;
+    final OfflineSelection? saved =
+        OfflineStore.forSelection(widget.id, widget.selection);
 
     return Scaffold(
       appBar: AppBar(
@@ -235,14 +264,34 @@ class _CollectionPage extends State<CollectionPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.name, overflow: TextOverflow.ellipsis),
-                  Text(
-                    widget.selection.label,
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w400, color: scheme.onSurfaceVariant),
+                  Row(
+                    children: [
+                      Text(
+                        widget.selection.label,
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w400, color: scheme.onSurfaceVariant),
+                      ),
+                      if (saved != null) ...[
+                        const SizedBox(width: 6),
+                        OfflineMark(
+                          label: 'offline',
+                          size: 14,
+                          complete: saved.complete && !saved.missesAnyOf(_allKeys),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
         actions: [
+          // The same control as on the pick screen: somebody who is already looking at
+          // the pieces should not have to walk back out to take them along.
+          OfflineButton(
+            collectionId: widget.id,
+            collectionName: widget.name,
+            selection: widget.selection,
+            currentKeys: _allKeys,
+          ),
           IconButton(
             icon: Icon(_searching ? Icons.close : Icons.search),
             tooltip: _searching ? 'Suche schließen' : 'Suchen',
@@ -278,8 +327,8 @@ class _CollectionPage extends State<CollectionPage> {
                       itemBuilder: (context, index) {
                         final row = rows[index];
                         return row is _Booklet
-                            ? _bookletTile(row, scheme)
-                            : _tile(row as _Piece, scheme);
+                            ? _bookletTile(row, scheme, saved)
+                            : _tile(row as _Piece, scheme, saved);
                       },
                     ),
             ),
@@ -288,21 +337,44 @@ class _CollectionPage extends State<CollectionPage> {
 
   /// A Heft as one row that opens. Collapsed, because that is the point of it: a Sammlung
   /// with a 40-piece Heft in it should still read as a Sammlung.
-  Widget _bookletTile(_Booklet booklet, ColorScheme scheme) {
+  Widget _bookletTile(_Booklet booklet, ColorScheme scheme, OfflineSelection? saved) {
+    // Every piece that has pages at all has to be here - and at least one has to, or an
+    // empty Heft would claim to be downloaded.
+    final bool offline = saved != null &&
+        booklet.pieces.any((piece) => piece.playable) &&
+        booklet.pieces
+            .every((piece) => !piece.playable || piece.keys.every(saved.holds));
+
     return ExpansionTile(
       leading: Icon(Icons.menu_book_outlined, color: scheme.primary),
       title: Text(booklet.label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(
-          '${booklet.pieces.length} ${booklet.pieces.length == 1 ? 'Stück' : 'Stücke'}'),
+      // In the subtitle rather than as a trailing widget: ExpansionTile's trailing slot
+      // is its own turning arrow, and a Heft that cannot be seen to open is worse than
+      // one whose offline mark sits a line lower.
+      subtitle: Row(
+        children: [
+          Text('${booklet.pieces.length} ${booklet.pieces.length == 1 ? 'Stück' : 'Stücke'}'),
+          if (offline) ...[
+            const SizedBox(width: 8),
+            const OfflineMark(label: 'offline', size: 15),
+          ],
+        ],
+      ),
       children: booklet.pieces
-          .map((piece) => _tile(piece, scheme, inset: true))
+          .map((piece) => _tile(piece, scheme, saved, inset: true))
           .toList(),
     );
   }
 
-  Widget _tile(_Piece piece, ColorScheme scheme, {bool inset = false}) {
+  Widget _tile(_Piece piece, ColorScheme scheme, OfflineSelection? saved,
+      {bool inset = false}) {
     final bool opened =
         piece.playable && cachedFiles.contains(piece.imageIds.first.toString());
+
+    // Every page of it, not the first: half a piece on the device is not this piece
+    // available offline.
+    final bool offline =
+        saved != null && piece.playable && piece.keys.every(saved.holds);
 
     // A piece of a Heft is numbered inside the Heft; pages nobody has cut out yet have no
     // number at all, and saying so is better than borrowing one.
@@ -356,13 +428,19 @@ class _CollectionPage extends State<CollectionPage> {
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: subtitle.isEmpty ? null : Text(subtitle),
-      trailing: piece.pages > 1
+      trailing: piece.pages > 1 || offline
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${piece.pages}', style: TextStyle(color: scheme.onSurfaceVariant)),
-                const SizedBox(width: 2),
-                Icon(Icons.auto_stories, size: 16, color: scheme.onSurfaceVariant),
+                if (piece.pages > 1) ...[
+                  Text('${piece.pages}', style: TextStyle(color: scheme.onSurfaceVariant)),
+                  const SizedBox(width: 2),
+                  Icon(Icons.auto_stories, size: 16, color: scheme.onSurfaceVariant),
+                ],
+                if (offline) ...[
+                  const SizedBox(width: 8),
+                  const OfflineMark(),
+                ],
               ],
             )
           : null,

@@ -4,10 +4,12 @@ import 'package:musebiachl/model/api/collection_selection.dart';
 import 'package:musebiachl/model/api/player_profile.dart';
 import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/model/arg/collection_arguments.dart';
+import 'package:musebiachl/service/offline_store.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/service/session.dart';
 import 'package:musebiachl/theme.dart';
 import 'package:musebiachl/view/collection_page.dart';
+import 'package:musebiachl/view/offline_button.dart';
 
 /// One section of the pick list: a register, or the Stimmen, which belong to none.
 class _Section {
@@ -60,6 +62,7 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
   /// Everything from the device first, so the screen is up before the request is made -
   /// and so it works with no signal at all, which is the normal case in a rehearsal room.
   Future<void> getData() async {
+    await OfflineStore.load();
     profile = await RemoteServices().cachedProfile();
     last = await RemoteServices().lastSelection(widget.id);
 
@@ -211,31 +214,37 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
           ],
         ),
       ),
+      // Rebuilt from the offline store as well: a download started on one row keeps
+      // running when this screen is left, and every row says where its Stimme is.
       body: !isLoaded
           ? const LoadingBody('Loading Stimmen from API')
-          : RefreshIndicator(
-              onRefresh: getData,
-              child: rows.isEmpty
-                  ? const EmptyBody(
-                      icon: Icons.music_off_outlined,
-                      title: 'Dieser Sammlung ist noch nichts zugewiesen.',
-                      hint: 'Sobald die Seiten im MuseAdmin einer Stimme oder einem Instrument '
-                          'zugewiesen sind, stehen sie hier.',
-                    )
-                  : ListView.builder(
-                      itemCount: rows.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) return _hint(scheme);
+          : ValueListenableBuilder<int>(
+              valueListenable: OfflineStore.changes,
+              builder: (context, _, _) => RefreshIndicator(
+                onRefresh: getData,
+                child: rows.isEmpty
+                    ? const EmptyBody(
+                        icon: Icons.music_off_outlined,
+                        title: 'Dieser Sammlung ist noch nichts zugewiesen.',
+                        hint: 'Sobald die Seiten im MuseAdmin einer Stimme oder einem Instrument '
+                            'zugewiesen sind, stehen sie hier.',
+                      )
+                    : ListView.builder(
+                        itemCount: rows.length + 2,
+                        itemBuilder: (context, index) {
+                          if (index == 0) return _hint(scheme);
+                          if (index == 1) return _offlineHint(scheme);
 
-                        final row = rows[index - 1];
+                          final row = rows[index - 2];
 
-                        if (row is _Section) {
-                          return SectionHeader(row.label, trailing: row.mine ? 'mein Register' : null);
-                        }
+                          if (row is _Section) {
+                            return SectionHeader(row.label, trailing: row.mine ? 'mein Register' : null);
+                          }
 
-                        return _tile(row as CollectionSelection, scheme);
-                      },
-                    ),
+                          return _tile(row as CollectionSelection, scheme);
+                        },
+                      ),
+              ),
             ),
     );
   }
@@ -267,9 +276,34 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
     );
   }
 
+  /// Shown until this Sammlung has something on the device, and then never again. The
+  /// icon on every row is the whole feature, and nothing else on the screen names it.
+  Widget _offlineHint(ColorScheme scheme) {
+    if (OfflineStore.inCollection(widget.id).isNotEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
+      child: Row(
+        children: [
+          Icon(Icons.download_for_offline_outlined, size: 18, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Mit diesem Zeichen rechts nimmst du eine ganze Stimme mit — '
+              'dann ist sie auch ohne Netz da.',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _tile(CollectionSelection selection, ColorScheme scheme) {
     final bool mine = _isMyInstrument(selection);
     final bool wasLast = _wasLast(selection);
+    final OfflineSelection? saved = OfflineStore.forSelection(widget.id, selection);
+    final OfflineProgress? progress = OfflineStore.progressOf(widget.id, selection);
 
     return Container(
       color: mine || wasLast ? scheme.primaryContainer.withValues(alpha: 0.35) : null,
@@ -280,21 +314,68 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
           selection.label,
           style: TextStyle(fontWeight: mine ? FontWeight.w700 : FontWeight.w500),
         ),
-        subtitle: Row(
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Stücke, not pages: a part runs over two sheets often enough that counting
-            // paper would say nothing, and a Heft counts as the pieces printed in it.
-            Text('${selection.pieceCount} ${selection.pieceCount == 1 ? 'Stück' : 'Stücke'}'),
-            if (selection.kind == SelectionKind.register) ...[
-              const SizedBox(width: 6),
-              Text('· ganzes Register', style: TextStyle(color: scheme.onSurfaceVariant)),
-            ],
-            if (mine) _badge('mein Instrument', scheme.primary, scheme.onPrimary),
-            if (wasLast && !mine) _badge('zuletzt', scheme.secondary, scheme.onSecondary),
+            Row(
+              children: [
+                // Stücke, not pages: a part runs over two sheets often enough that counting
+                // paper would say nothing, and a Heft counts as the pieces printed in it.
+                Text('${selection.pieceCount} ${selection.pieceCount == 1 ? 'Stück' : 'Stücke'}'),
+                if (selection.kind == SelectionKind.register) ...[
+                  const SizedBox(width: 6),
+                  Text('· ganzes Register', style: TextStyle(color: scheme.onSurfaceVariant)),
+                ],
+                if (mine) _badge('mein Instrument', scheme.primary, scheme.onPrimary),
+                if (wasLast && !mine) _badge('zuletzt', scheme.secondary, scheme.onSecondary),
+              ],
+            ),
+            _offlineLine(selection, saved, progress, scheme),
           ],
         ),
-        trailing: Icon(Icons.chevron_right, color: scheme.outline),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OfflineButton(
+              collectionId: widget.id,
+              collectionName: widget.name,
+              selection: selection,
+            ),
+            Icon(Icons.chevron_right, color: scheme.outline),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// The second line of a row: what this Stimme's offline state actually is.
+  ///
+  /// A number of pages and a size, because "offline" on its own is a claim and this is
+  /// the evidence - half a Marschbuch has to look different from a whole one.
+  Widget _offlineLine(CollectionSelection selection, OfflineSelection? saved,
+      OfflineProgress? progress, ColorScheme scheme) {
+    if (progress != null) {
+      final String counted =
+          progress.total == 0 ? '…' : '${progress.handled} von ${progress.total} Seiten';
+      return Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Text('lädt · $counted',
+            style: TextStyle(color: scheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+      );
+    }
+
+    if (saved == null) return const SizedBox.shrink();
+
+    final bool outdated = saved.outdatedFor(selection);
+    final String text = !saved.complete
+        ? 'offline · nur ${saved.keys.length} von ${saved.pages} Seiten'
+        : outdated
+            ? 'offline · seither geändert'
+            : 'offline · ${saved.pages} ${saved.pages == 1 ? 'Seite' : 'Seiten'} · ${saved.sizeLabel}';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: OfflineMark(label: text, size: 15, complete: saved.complete && !outdated),
     );
   }
 

@@ -8,6 +8,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:musebiachl/model/api/session_expired_exception.dart';
 import 'package:musebiachl/model/api/user_drawing.dart';
+import 'package:musebiachl/service/offline_store.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/service/session.dart';
 
@@ -303,8 +304,12 @@ class _ScorePageState extends State<ScorePage> {
         index < widget.imageRevisions.length ? widget.imageRevisions[index] : 0;
 
     return CachedNetworkImageProvider(
-      '${RemoteServices.baseUrl}/file/image/$id?v=$revision',
-      cacheKey: '$id-$revision',
+      OfflineStore.imageUrl(id, revision),
+      cacheKey: OfflineStore.imageKey(id, revision),
+      // Not the package's default manager: a page somebody took along has to be the page
+      // this screen finds, and the default one drops the oldest 200 files and expires
+      // everything after 30 days. See MusePages.
+      cacheManager: MusePages(),
     );
   }
 

@@ -8,6 +8,57 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.13.0+30] — 2026-09-24
+
+Works against any server the 1.12.0 app works against.
+
+### Added
+- **A whole Stimme, taken along.** In every Sammlung a line — a Stimme, an instrument, a
+  whole register — can be made available offline with one tap: its piece list and *every*
+  page of it come down, not only the ones somebody happened to open.
+
+  Until now that was left to chance. The store was a cache: what had been looked at was
+  still there, and what had not was missing in a rehearsal room with no reception. A Mappe
+  that is on the stand on Sunday is something a player prepares on Saturday.
+
+  The download keeps running when the screen is left, three pages at a time, with progress
+  and a cancel. What arrived stays: a stopped download is topped up next time rather than
+  started again.
+
+- **Where it is, is now visible everywhere.**
+  - The **Sammlungen** list says which Stimme of a Mappe is on this phone, by name. Not
+    only *that* something is there: the 3. Trompete is nothing to the player who reads the 1.
+  - The **pick screen** gives every line its state — a download button, *lädt · 23 von 96
+    Seiten*, or *offline · 96 Seiten · 41,2 MB*.
+  - Inside a **Mappe**, every piece all of whose pages are here carries a pin, the title
+    bar says it for the whole Stimme, and the same button sits in the actions.
+  - Half a Mappe looks different from a whole one, and one the Mappe has changed under
+    looks different again.
+
+- Tapping the mark gives the page count, the size and the date, with *Aktualisieren* and
+  *Entfernen*.
+
+### Changed
+- **The pages no longer live in the cache directory.** ScorePage used to get
+  `cached_network_image`'s `DefaultCacheManager`: 200 files, 30 days, in the temporary
+  directory. A 96-page Marschbuch would have been half gone by the concert — the
+  least-recently-used files go as soon as the next Mappe is opened — and Android empties
+  that directory by itself when storage runs short.
+
+  It is `MusePages` now: 20 000 files, ten years, in the application support directory,
+  which nothing clears but uninstalling the app and the Entfernen button in it.
+
+  The old cache is emptied once on first start, which gives back whatever it had
+  accumulated; pages looked at before are fetched once more.
+
+### Notes
+- `flutter_cache_manager`, `path_provider` and `file` are direct dependencies now. They
+  were already there through `cached_network_image`.
+- The browser build (`flutter run -d web-server`) does not offer the download: there is no
+  directory for anything to stay in.
+- `offline_store_test.dart` covers the record, the staleness rules and the cache key the
+  store shares with ScorePage. The download itself needs a device and a server.
+
 ## [1.12.0+29] — 2026-09-24
 
 Needs muse-server 4.37.0.
