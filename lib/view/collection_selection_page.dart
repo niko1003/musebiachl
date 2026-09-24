@@ -136,12 +136,18 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
     final rows = <Object>[];
     for (final String section in sections) {
       final List<CollectionSelection> entries = bySection[section]!;
-      // The server's order is Partiturordnung and part number; the one thing worth moving
-      // is this player's own instrument, which is an explicit decision they made.
-      entries.sort((a, b) => (_isMyInstrument(b) ? 1 : 0).compareTo(_isMyInstrument(a) ? 1 : 0));
+
+      // The server's order is Partiturordnung and part number, which is the order a player
+      // reads a list of Stimmen in; the one thing worth moving is this player's own
+      // instrument, an explicit decision they made. Partitioned rather than sorted -
+      // Dart's List.sort is not guaranteed to be stable, and the rest of the order matters.
+      final List<CollectionSelection> mine = entries.where(_isMyInstrument).toList();
+      final List<CollectionSelection> rest =
+          entries.where((entry) => !_isMyInstrument(entry)).toList();
 
       rows.add(_Section(section, mine: _rank(entries) == 0));
-      rows.addAll(entries);
+      rows.addAll(mine);
+      rows.addAll(rest);
     }
     return rows;
   }

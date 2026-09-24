@@ -75,103 +75,127 @@ class _LoginPageState extends State<LoginPage> {
   bool isVisible = true;
 
   @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      body: Container(
-        key: const Key("main"),
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                constraints: const BoxConstraints.expand(),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: Column(
-                  children: [
-                    const SizedBox(
-                      height: 50,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            // Enough room for the keyboard, and a width that does not stretch the form
+            // across a tablet.
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(Icons.music_note, size: 56, color: scheme.primary),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Muse Biachl',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: scheme.onSurface,
                     ),
-                    const Text(
-                      'Muse Biachl',
-                      style:
-                          TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(
-                      height: 16,
-                    ),
-                    if (widget.message != null)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(widget.message!),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Die Noten der Kapelle',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 28),
+                  if (widget.message != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: scheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    TextField(
-                      controller: usernameController,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      textCapitalization: TextCapitalization.none,
-                      onChanged: (value) {
-                        setState(() {});
-                      },
-                      decoration: InputDecoration(
-                        // Not Icons.mail: there is no e-mail address anywhere in the
-                        // model, and a phone that autocapitalises the first letter of a
-                        // case-sensitive username is its own support ticket.
-                        prefixIcon: const Icon(Icons.person),
-                        suffixIcon: usernameController.text.isEmpty
-                            ? const Text('')
-                            : GestureDetector(
-                                onTap: () {
-                                  usernameController.clear();
-                                },
-                                child: const Icon(Icons.close)),
-                        hintText: 'Benutzername',
-                        labelText: 'Benutzername',
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: scheme.onSecondaryContainer, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.message!,
+                              style: TextStyle(color: scheme.onSecondaryContainer),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(
-                      height: 16,
-                    ),
-                    TextField(
-                      obscureText: isVisible,
-                      controller: passwordController,
-                      decoration: InputDecoration(
-                        // icon: Icon(Icons.mail),
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: GestureDetector(
-                            onTap: () {
-                              isVisible = !isVisible;
-                              setState(() {});
-                            },
-                            child: Icon(isVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off)),
-                        hintText: 'Passwort',
-                        labelText: 'Passwort',
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 16,
-                    ),
-                    ElevatedButton(
-                        onPressed: login,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          child: Text('Anmelden'),
-                        ))
+                    const SizedBox(height: 20),
                   ],
-                ),
+                  TextField(
+                    controller: usernameController,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.next,
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                    decoration: InputDecoration(
+                      // Not Icons.mail: there is no e-mail address anywhere in the
+                      // model, and a phone that autocapitalises the first letter of a
+                      // case-sensitive username is its own support ticket.
+                      prefixIcon: const Icon(Icons.person),
+                      suffixIcon: usernameController.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => setState(usernameController.clear),
+                            ),
+                      labelText: 'Benutzername',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    obscureText: isVisible,
+                    controller: passwordController,
+                    textInputAction: TextInputAction.go,
+                    onSubmitted: (_) => login(),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(isVisible ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => isVisible = !isVisible),
+                      ),
+                      labelText: 'Passwort',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: login,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Anmelden'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Zum Anmelden brauchst du eine Internetverbindung. Danach funktioniert '
+                    'das Biachl auch ohne Empfang.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                  ),
+                ],
               ),
-            )
-          ],
+            ),
+          ),
         ),
       ),
     );
