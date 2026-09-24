@@ -282,10 +282,9 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
         ),
         subtitle: Row(
           children: [
-            // Pages carrying this assignment. Picking an instrument can hand over more
-            // than that - its Stimme and its register are matched too - so this is "is
-            // this line in this Mappe at all", not a promise about the list's length.
-            Text('${selection.pageCount} ${selection.pageCount == 1 ? 'Seite' : 'Seiten'}'),
+            // Stücke, not pages: a part runs over two sheets often enough that counting
+            // paper would say nothing, and a Heft counts as the pieces printed in it.
+            Text('${selection.pieceCount} ${selection.pieceCount == 1 ? 'Stück' : 'Stücke'}'),
             if (selection.kind == SelectionKind.register) ...[
               const SizedBox(width: 6),
               Text('· ganzes Register', style: TextStyle(color: scheme.onSurfaceVariant)),

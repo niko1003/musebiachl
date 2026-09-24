@@ -37,7 +37,7 @@ class CollectionSelection {
     required this.kind,
     required this.id,
     required this.label,
-    required this.pageCount,
+    required this.pieceCount,
     this.registerId,
     this.registerLabel,
     this.registerOrder,
@@ -46,7 +46,9 @@ class CollectionSelection {
   SelectionKind kind;
   String id;
   String label;
-  int pageCount;
+  /// How many Stücke this line has something for - not pages. A part routinely runs over
+  /// two of them, and nobody counts their Mappe in sheets; a Heft counts as its pieces.
+  int pieceCount;
 
   /// The register this line belongs to, null for a Stimme. The id, not the label, is what
   /// the player's own register is matched against.
@@ -62,7 +64,7 @@ class CollectionSelection {
         kind: SelectionKind.fromKey(json["kind"]),
         id: json["id"],
         label: json["label"],
-        pageCount: json["pageCount"] ?? 0,
+        pieceCount: json["pieceCount"] ?? 0,
         registerId: json["registerId"],
         registerLabel: json["registerLabel"],
         registerOrder: json["registerOrder"],
@@ -72,7 +74,7 @@ class CollectionSelection {
         "kind": kind.key,
         "id": id,
         "label": label,
-        "pageCount": pageCount,
+        "pieceCount": pieceCount,
         "registerId": registerId,
         "registerLabel": registerLabel,
         "registerOrder": registerOrder,

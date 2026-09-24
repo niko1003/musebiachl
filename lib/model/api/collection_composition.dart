@@ -18,6 +18,8 @@ class CollectionComposition {
     required this.collectionOrdering,
     required this.page,
     this.scoreNotes,
+    this.bookletLabel,
+    this.pieceOrdering,
   });
 
   String compositionLabel;
@@ -37,6 +39,17 @@ class CollectionComposition {
   int collectionOrdering;
   int page;
 
+  /// The Heft this page is a page of - "Kirchenblech" - or null for an ordinary piece.
+  ///
+  /// A Sammlung holds a Heft by holding its scan, one Score of up to 80 pages, so without
+  /// this the whole booklet is a single entry and reaching the Deutsche Messe in it means
+  /// swiping past everything printed before it. When it is set, [compositionLabel] is the
+  /// piece printed on the page and the app lists the pieces under the Heft.
+  String? bookletLabel;
+
+  /// Where that piece sits in the Heft's printed index; null for a page not cut out yet.
+  int? pieceOrdering;
+
   factory CollectionComposition.fromJson(Map<String, dynamic> json) => CollectionComposition(
     compositionLabel: json["compositionLabel"],
     scoreId: json["scoreId"],
@@ -48,6 +61,8 @@ class CollectionComposition {
     collectionOrdering: json["collectionOrdering"],
     page: json["page"],
     scoreNotes: json["scoreNotes"],
+    bookletLabel: json["bookletLabel"],
+    pieceOrdering: json["pieceOrdering"],
   );
 
   Map<String, dynamic> toJson() => {

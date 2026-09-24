@@ -8,9 +8,9 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
-## [1.12.0+28] — 2026-09-24
+## [1.12.0+29] — 2026-09-24
 
-Needs muse-server 4.36.0.
+Needs muse-server 4.37.0.
 
 ### Changed
 - **The Mappe comes first, and the Stimme second.** The app used to open on an instrument
@@ -45,6 +45,18 @@ Needs muse-server 4.36.0.
   normal case — section headers, icons per Sammlungsart, a search box on the Sammlungen and
   on the pieces of a Mappe, and real empty states instead of a blank list. ScorePage is
   untouched: it paints its own black viewer and always did.
+
+- **A Heft in a Sammlung is its pieces, not 80 pages.** A Sammlung holds a Heft by holding
+  its scan, so Kirchenblech used to be *one* row: opening it put you on page 1 and the
+  Deutsche Messe was six swipes away, during the piece. Its pieces are now listed under it
+  as a collapsible row — and when the Sammlung is nothing but that one Heft, the Heft is
+  skipped and its pieces *are* the list. Each is numbered by its place in the printed index
+  and opens at its own pages. Pages nobody has cut into a piece yet come last as
+  *Weitere Seiten*; a Heft nothing has been cut out of stays the single row it was.
+
+- **The pick screen counts Stücke, not Seiten.** "15 Seiten" was the wrong question — a part
+  runs over two sheets often enough that counting paper says nothing, and for a Heft the
+  number that means something is how many pieces are printed in it.
 
 - **⇄ in the Mappe swaps Stimme** without walking back through the Sammlungen.
 
