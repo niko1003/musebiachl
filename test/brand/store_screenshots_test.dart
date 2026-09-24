@@ -36,10 +36,13 @@ import 'package:musebiachl/view/score_page.dart';
 void main() {
   const String username = 'anna';
 
-  /// Play wants 16:9 at most; Apple wants exactly 1290x2796 for the 6.7" set.
+  /// Play wants 16:9 at most; Apple wants exactly 1290x2796 for the 6.7" iPhone set and
+  /// 2048x2732 for the 13" iPad - and it wants the iPad set because the Runner targets
+  /// device family "1,2", so the app is universal whether or not anyone plays off one.
   const Map<String, ({Size size, double ratio})> devices = {
     'android-1080x1920': (size: Size(1080, 1920), ratio: 2.75),
     'ios-1290x2796': (size: Size(1290, 2796), ratio: 3.0),
+    'ipad-2048x2732': (size: Size(2048, 2732), ratio: 2.0),
   };
 
   setUpAll(() async {
