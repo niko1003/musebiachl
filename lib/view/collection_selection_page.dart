@@ -302,45 +302,47 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
     final OfflineSelection? saved = OfflineStore.forSelection(widget.id, selection);
     final OfflineProgress? progress = OfflineStore.progressOf(widget.id, selection);
 
-    return Container(
-      color: mine || wasLast ? scheme.primaryContainer.withValues(alpha: 0.35) : null,
-      child: ListTile(
-        onTap: () => _open(selection),
-        leading: Icon(_iconFor(selection.kind), color: scheme.primary),
-        title: Text(
-          selection.label,
-          style: TextStyle(fontWeight: mine ? FontWeight.w700 : FontWeight.w500),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Stücke, not pages: a part runs over two sheets often enough that counting
-                // paper would say nothing, and a Heft counts as the pieces printed in it.
-                Text('${selection.pieceCount} ${selection.pieceCount == 1 ? 'Stück' : 'Stücke'}'),
-                if (selection.kind == SelectionKind.register) ...[
-                  const SizedBox(width: 6),
-                  Text('· ganzes Register', style: TextStyle(color: scheme.onSurfaceVariant)),
-                ],
-                if (mine) _badge('mein Instrument', scheme.primary, scheme.onPrimary),
-                if (wasLast && !mine) _badge('zuletzt', scheme.secondary, scheme.onSecondary),
+    // tileColor rather than a Container around it: a ListTile paints its background
+    // and its ink onto the nearest Material, so a coloured box around it hides both -
+    // which Flutter asserts about, and which had quietly cost this row its tap ripple.
+    return ListTile(
+      tileColor:
+          mine || wasLast ? scheme.primaryContainer.withValues(alpha: 0.35) : null,
+      onTap: () => _open(selection),
+      leading: Icon(_iconFor(selection.kind), color: scheme.primary),
+      title: Text(
+        selection.label,
+        style: TextStyle(fontWeight: mine ? FontWeight.w700 : FontWeight.w500),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Stücke, not pages: a part runs over two sheets often enough that counting
+              // paper would say nothing, and a Heft counts as the pieces printed in it.
+              Text('${selection.pieceCount} ${selection.pieceCount == 1 ? 'Stück' : 'Stücke'}'),
+              if (selection.kind == SelectionKind.register) ...[
+                const SizedBox(width: 6),
+                Text('· ganzes Register', style: TextStyle(color: scheme.onSurfaceVariant)),
               ],
-            ),
-            _offlineLine(selection, saved, progress, scheme),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OfflineButton(
-              collectionId: widget.id,
-              collectionName: widget.name,
-              selection: selection,
-            ),
-            Icon(Icons.chevron_right, color: scheme.outline),
-          ],
-        ),
+              if (mine) _badge('mein Instrument', scheme.primary, scheme.onPrimary),
+              if (wasLast && !mine) _badge('zuletzt', scheme.secondary, scheme.onSecondary),
+            ],
+          ),
+          _offlineLine(selection, saved, progress, scheme),
+        ],
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          OfflineButton(
+            collectionId: widget.id,
+            collectionName: widget.name,
+            selection: selection,
+          ),
+          Icon(Icons.chevron_right, color: scheme.outline),
+        ],
       ),
     );
   }

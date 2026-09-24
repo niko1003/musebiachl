@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -25,6 +26,12 @@ import 'package:musebiachl/theme.dart';
 /// rehearsal.
 class ScorePage extends StatefulWidget {
   static const routeName = '/score';
+
+  /// The way in for the screenshot harness, which has a picture but no server and no
+  /// cache manager behind it. Null in every build that ships, and the only reason
+  /// [_ScorePageState.imageOf] is typed as a plain ImageProvider.
+  @visibleForTesting
+  static ImageProvider Function(int imageId, int revision)? debugImageFor;
 
   final List<int> imageIds;
   final List<int> imageRevisions;
@@ -391,10 +398,13 @@ class _ScorePageState extends State<ScorePage> {
   /// The revision is in the URL *and* in the cache key on purpose: rotate, crop, tile
   /// and the black-and-white pass rewrite a page while keeping its id, so caching on the
   /// id alone pins the old picture on the device for ever.
-  CachedNetworkImageProvider imageOf(int index) {
+  ImageProvider imageOf(int index) {
     final int id = widget.imageIds[index];
     final int revision =
         index < widget.imageRevisions.length ? widget.imageRevisions[index] : 0;
+
+    final ImageProvider Function(int, int)? override = ScorePage.debugImageFor;
+    if (override != null) return override(id, revision);
 
     return CachedNetworkImageProvider(
       OfflineStore.imageUrl(id, revision),
@@ -573,7 +583,7 @@ class _ScorePageState extends State<ScorePage> {
                   children: [
                     Icon(Icons.arrow_back, size: 18),
                     SizedBox(width: 4),
-                    Text('back'),
+                    Text('Zurück'),
                   ],
                 ),
               ),
