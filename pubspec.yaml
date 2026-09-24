@@ -1,6 +1,6 @@
 name: musebiachl
 description: Displaying music sheets for musicians of a wind / brass band.
-version: 1.13.0+30
+version: 1.14.0+31
 
 
 # The following line prevents the package from being accidentally published to
@@ -44,11 +44,16 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/icon.png"
   remove_alpha_ios: true
+  # Android 8+ composes the launcher icon itself and masks it to whatever shape the
+  # launcher likes, so the flower is handed over on its own, inside the 66% safe zone,
+  # with the corporate green behind it.
+  adaptive_icon_background: "#0A8B31"
+  adaptive_icon_foreground: "assets/icon/icon-foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -63,6 +68,18 @@ flutter:
   assets: 
     - assets/images/
   fonts:
-    - family: Roboto
+    # The corporate design's two: Noto Serif SemiBold for headings, Fira Sans for
+    # everything that is read rather than scanned. Both are OFL; the licences sit beside
+    # them in assets/fonts. Bundled rather than asked of the system, because no Android
+    # has Fira Sans and the app would silently fall back to Roboto.
+    - family: Fira Sans
       fonts:
-        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/FiraSans-Regular.ttf
+        - asset: assets/fonts/FiraSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/FiraSans-SemiBold.ttf
+          weight: 600
+    - family: Noto Serif
+      fonts:
+        - asset: assets/fonts/NotoSerif-SemiBold.ttf
+          weight: 600

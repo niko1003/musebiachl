@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import 'package:musebiachl/model/api/collection_selection.dart';
@@ -119,11 +118,6 @@ class _OfflineButtonState extends State<OfflineButton> {
 
   @override
   Widget build(BuildContext context) {
-    // `flutter run -d web-server` is a way to look at the app, not a way to take a Mappe
-    // to a rehearsal: the browser build has no directory to keep pages in, so offering
-    // the button there would only ever produce a Stimme with nought of its pages.
-    if (kIsWeb) return const SizedBox.shrink();
-
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return ValueListenableBuilder<int>(

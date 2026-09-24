@@ -151,10 +151,7 @@ class _CollectionPage extends State<CollectionPage> {
       }
       setState(() => isLoaded = true);
       if (cached != null) return; // offline, and the Mappe is already on screen
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: ${e.toString()}'),
-        backgroundColor: Colors.red.shade300,
-      ));
+      showError(context, 'Error: ${e.toString()}');
       compositions = [];
     }
   }
@@ -420,10 +417,12 @@ class _CollectionPage extends State<CollectionPage> {
         ),
       ),
       leading: CircleAvatar(
-        // Green once it has been opened on this phone, which is how a player finds their
-        // way back to the piece they were just looking at.
-        backgroundColor: opened ? scheme.tertiaryContainer : scheme.primaryContainer,
-        foregroundColor: opened ? scheme.onTertiaryContainer : scheme.onPrimaryContainer,
+        // Marked in the Vereinsgrün once it has been opened on this phone, which is how a
+        // player finds their way back to the piece they were just looking at. The other
+        // way round until 1.13.0, when green stopped being a spare colour and became the
+        // brand's: everything would have been green, and nothing would have meant it.
+        backgroundColor: opened ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+        foregroundColor: opened ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
         child: badge,
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),

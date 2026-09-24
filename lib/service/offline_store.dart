@@ -340,13 +340,22 @@ class OfflineStore {
       // What is really lying here, asked of the store rather than counted from this run.
       // That is what makes a download somebody stopped and started again add up instead
       // of forgetting the pages the first attempt had already fetched.
-      final List<String> have = <String>[];
+      List<String> have = <String>[];
       int bytes = 0;
       for (final _Page page in pages) {
         final FileInfo? info = await MusePages().getFileFromCache(page.key);
         if (info == null || !await info.file.exists()) continue;
         have.add(page.key);
         bytes += await info.file.length();
+      }
+
+      // A store that cannot say what it holds is not a store that holds nothing. In the
+      // browser there is no directory and no database behind MusePages, so the answer
+      // above is empty however well the download went; the run's own count is then the
+      // best thing there is. On a device the two agree, and if they ever did not, the
+      // next download would correct the record anyway.
+      if (have.isEmpty && done > 0) {
+        have = [for (int i = 0; i < done && i < pages.length; i++) pages[i].key];
       }
 
       final OfflineSelection? previous = _saved[id];

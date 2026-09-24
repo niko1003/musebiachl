@@ -67,10 +67,7 @@ class _FavoritePageState extends State<FavoritePage> {
       }
       setState(() => isLoaded = true);
       if (cached != null) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: ${e.toString()}'),
-        backgroundColor: Colors.red.shade300,
-      ));
+      showError(context, 'Error: ${e.toString()}');
       groups = [];
     }
 

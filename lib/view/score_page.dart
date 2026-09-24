@@ -11,6 +11,7 @@ import 'package:musebiachl/model/api/user_drawing.dart';
 import 'package:musebiachl/service/offline_store.dart';
 import 'package:musebiachl/service/remote_service.dart';
 import 'package:musebiachl/service/session.dart';
+import 'package:musebiachl/theme.dart';
 
 /// One part, all of its pages, swiped left and right - and markable with a pencil.
 ///
@@ -51,7 +52,9 @@ class _ScorePageState extends State<ScorePage> {
 
   bool locked = false;
   bool drawing = false;
-  bool erasing = false;
+  _Tool tool = _Tool.pen;
+
+  bool get erasing => tool == _Tool.eraser;
 
   /// The page's own pixel size, needed before anything can be drawn on it in page
   /// coordinates. Filled in as the gallery builds each page - PhotoViewGallery only
@@ -61,6 +64,12 @@ class _ScorePageState extends State<ScorePage> {
 
   /// The marks, per image id. Mutated in place while drawing.
   final Map<int, List<Stroke>> _strokes = {};
+
+  /// The words, per image id.
+  final Map<int, List<Annotation>> _texts = {};
+
+  /// The word currently under the finger, while it is being dragged somewhere better.
+  int? _draggingText;
 
   /// Pages whose marks have not reached the server yet.
   final Set<int> _unpushed = {};
@@ -121,6 +130,9 @@ class _ScorePageState extends State<ScorePage> {
   List<Stroke> _strokesFor(int imageId) =>
       _strokes.putIfAbsent(imageId, () => <Stroke>[]);
 
+  List<Annotation> _textsFor(int imageId) =>
+      _texts.putIfAbsent(imageId, () => <Annotation>[]);
+
   /// Device first, then the server - the same order as every list in this app, and for
   /// the same reason: what is on the phone is the only copy that exists in a rehearsal
   /// room with no signal.
@@ -157,6 +169,7 @@ class _ScorePageState extends State<ScorePage> {
           // The server has none, so neither should this device - it was rubbed clean
           // somewhere else.
           _strokes.remove(imageId);
+          _texts.remove(imageId);
           _stale.remove(imageId);
           await _remote.writeDrawingCache(
               UserDrawing(imageId: imageId, imageRevision: 0, strokes: const []));
@@ -181,14 +194,14 @@ class _ScorePageState extends State<ScorePage> {
   /// stand they are read as the music. They are not deleted either: drawing on the page
   /// again replaces them, and until then they are simply left alone.
   void _apply(int imageId, UserDrawing drawing) {
-    if (drawing.strokes.isNotEmpty &&
-        drawing.imageRevision != _revisionOf(imageId)) {
+    if (!drawing.isEmpty && drawing.imageRevision != _revisionOf(imageId)) {
       _stale.add(imageId);
       return;
     }
 
     _stale.remove(imageId);
     _strokes[imageId] = List<Stroke>.from(drawing.strokes);
+    _texts[imageId] = List<Annotation>.from(drawing.texts);
     if (drawing.pending) _unpushed.add(imageId);
   }
 
@@ -202,6 +215,7 @@ class _ScorePageState extends State<ScorePage> {
       imageId: imageId,
       imageRevision: _revisionOf(imageId),
       strokes: _strokesFor(imageId),
+      texts: _textsFor(imageId),
       pending: true,
     ));
   }
@@ -212,6 +226,7 @@ class _ScorePageState extends State<ScorePage> {
         imageId: imageId,
         imageRevision: _revisionOf(imageId),
         strokes: _strokesFor(imageId),
+        texts: _textsFor(imageId),
       ));
       _unpushed.remove(imageId);
       await _remote.writeDrawingCache(saved);
@@ -242,6 +257,13 @@ class _ScorePageState extends State<ScorePage> {
       return;
     }
 
+    // In text mode a drag is not a line but a move: writing a word in exactly the right
+    // place on the first try is not something anybody manages on a phone.
+    if (tool == _Tool.text) {
+      _draggingText = _textAt(imageId, local, size);
+      return;
+    }
+
     final Stroke stroke = Stroke(<Offset>[_normalise(local, size)]);
     _active = stroke;
     setState(() => _strokesFor(imageId).add(stroke));
@@ -250,6 +272,21 @@ class _ScorePageState extends State<ScorePage> {
   void _panUpdate(int imageId, Offset local, Size size) {
     if (erasing) {
       _erase(imageId, local, size);
+      return;
+    }
+
+    if (tool == _Tool.text) {
+      final int? index = _draggingText;
+      if (index == null) return;
+
+      final List<Annotation> texts = _textsFor(imageId);
+      final Annotation moved = texts[index];
+      // The finger holds the middle of the word; the stored corner is where it starts.
+      final Rect box = _boxOf(moved, size);
+      setState(() => texts[index] = moved.copyWith(
+            at: _normalise(
+                local - Offset(box.width / 2, box.height / 2), size),
+          ));
       return;
     }
 
@@ -265,11 +302,62 @@ class _ScorePageState extends State<ScorePage> {
   }
 
   void _panEnd(int imageId) {
+    if (_draggingText != null) {
+      _draggingText = null;
+      _markChanged(imageId);
+      return;
+    }
+
     // Erasing saves from _erase itself, and only when something actually came off -
     // otherwise a stray tap with the eraser would queue a save of an unchanged page.
     if (_active == null) return;
     _active = null;
     _markChanged(imageId);
+  }
+
+  /// Which word is under this point, if any. Last one first: words written later are
+  /// drawn on top, so they are what a finger on the overlap means.
+  int? _textAt(int imageId, Offset local, Size size) {
+    final List<Annotation> texts = _textsFor(imageId);
+
+    for (int i = texts.length - 1; i >= 0; i--) {
+      // A little larger than the ink: what is being hit is a word on a music stand.
+      if (_boxOf(texts[i], size).inflate(size.shortestSide * 0.01).contains(local)) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  /// A tap in text mode: the word that was hit, or a new one where the finger landed.
+  Future<void> _tapText(int imageId, Offset local, Size size) async {
+    final List<Annotation> texts = _textsFor(imageId);
+    final int? hit = _textAt(imageId, local, size);
+
+    final _TextEdit? result = await showDialog<_TextEdit>(
+      context: context,
+      builder: (context) => _TextDialog(existing: hit == null ? null : texts[hit]),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      if (hit != null && result.delete) {
+        texts.removeAt(hit);
+      } else if (hit != null) {
+        texts[hit] = texts[hit].copyWith(text: result.text, size: result.size);
+      } else if (result.text.isNotEmpty) {
+        // Centred on the tap rather than starting there: a finger pointing at a bar means
+        // the middle of the word, not its first letter.
+        final Annotation written =
+            Annotation(at: Offset.zero, text: result.text, size: result.size);
+        final Rect box = _boxOf(written, size);
+        texts.add(written.copyWith(
+          at: _normalise(local - Offset(box.width / 2, box.height / 2), size),
+        ));
+      }
+    });
+
+    await _markChanged(imageId);
   }
 
   /// The eraser takes whole strokes, not pixels.
@@ -279,15 +367,20 @@ class _ScorePageState extends State<ScorePage> {
   /// player means by "no, not that one" and what keeps the stored drawing small.
   void _erase(int imageId, Offset local, Size size) {
     final List<Stroke> strokes = _strokesFor(imageId);
-    if (strokes.isEmpty) return;
+    final List<Annotation> texts = _textsFor(imageId);
+    if (strokes.isEmpty && texts.isEmpty) return;
 
     final double radius = size.shortestSide * 0.03;
-    final int before = strokes.length;
+    final int before = strokes.length + texts.length;
 
     strokes.removeWhere((stroke) => stroke.points
         .any((point) => (_toPixels(point, size) - local).distance <= radius));
 
-    if (strokes.length != before) {
+    // A word comes off whole too, and by its own box rather than by that radius: a long
+    // one would otherwise survive being rubbed across its middle.
+    texts.removeWhere((text) => _boxOf(text, size).contains(local));
+
+    if (strokes.length + texts.length != before) {
       setState(() {});
       _markChanged(imageId);
     }
@@ -366,10 +459,18 @@ class _ScorePageState extends State<ScorePage> {
             gaplessPlayback: true,
             filterQuality: FilterQuality.medium,
           ),
-          CustomPaint(painter: _StrokePainter(_strokes[imageId] ?? const [])),
+          CustomPaint(
+            painter: _MarkPainter(
+              _strokes[imageId] ?? const [],
+              _texts[imageId] ?? const [],
+            ),
+          ),
           if (drawing)
             GestureDetector(
               behavior: HitTestBehavior.opaque,
+              onTapUp: tool == _Tool.text
+                  ? (details) => _tapText(imageId, details.localPosition, size)
+                  : null,
               onPanStart: (details) =>
                   _panStart(imageId, details.localPosition, size),
               onPanUpdate: (details) =>
@@ -390,7 +491,7 @@ class _ScorePageState extends State<ScorePage> {
       drawing = !drawing;
       if (drawing) {
         locked = false;
-        erasing = false;
+        tool = _Tool.pen;
       }
     });
 
@@ -542,6 +643,27 @@ class _ScorePageState extends State<ScorePage> {
             ),
           ),
 
+        if (drawing && tool == _Tool.text)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 62.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'Tippen schreibt · auf ein Wort tippen ändert es · ziehen verschiebt',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
         if (drawing)
           SafeArea(
             child: Align(
@@ -558,17 +680,23 @@ class _ScorePageState extends State<ScorePage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _tool(
+                      _toolButton(
                         icon: Icons.edit,
                         label: 'Stift',
-                        active: !erasing,
-                        onPressed: () => setState(() => erasing = false),
+                        active: tool == _Tool.pen,
+                        onPressed: () => setState(() => tool = _Tool.pen),
                       ),
-                      _tool(
+                      _toolButton(
+                        icon: Icons.title,
+                        label: 'Text',
+                        active: tool == _Tool.text,
+                        onPressed: () => setState(() => tool = _Tool.text),
+                      ),
+                      _toolButton(
                         icon: Icons.auto_fix_normal,
                         label: 'Radierer',
-                        active: erasing,
-                        onPressed: () => setState(() => erasing = true),
+                        active: tool == _Tool.eraser,
+                        onPressed: () => setState(() => tool = _Tool.eraser),
                       ),
                       const SizedBox(width: 4),
                       TextButton(
@@ -631,7 +759,7 @@ class _ScorePageState extends State<ScorePage> {
     );
   }
 
-  Widget _tool({
+  Widget _toolButton({
     required IconData icon,
     required String label,
     required bool active,
@@ -649,22 +777,63 @@ class _ScorePageState extends State<ScorePage> {
   }
 }
 
-/// Draws the marks in page coordinates.
+/// Which of the three the finger is doing.
+enum _Tool { pen, text, eraser }
+
+/// The ink a player writes in. Red, because it has to be found at a glance on a
+/// black-and-white scan, and because printed music never uses it.
+const Color _markColour = Color(0xFFE53935);
+
+TextStyle _writtenStyle(double fontSize) => TextStyle(
+      // The app's own body face rather than the platform default - the only thing
+      // ScorePage takes from the theme, and only because a word written on a page should
+      // look like the rest of the Biachl.
+      fontFamily: bodyFont,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      height: 1.1,
+      color: _markColour,
+    );
+
+TextPainter _layoutText(Annotation text, Size size) => TextPainter(
+      text: TextSpan(
+          text: text.text, style: _writtenStyle(size.shortestSide * text.size)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+/// Where a word sits on the page, in page pixels.
+///
+/// Laid out rather than estimated, and in one place: the painter draws by it and the
+/// finger hits by it, and two different guesses would mean words that cannot be grabbed
+/// where they are seen.
+Rect _boxOf(Annotation text, Size size) {
+  final TextPainter painter = _layoutText(text, size);
+  return Rect.fromLTWH(text.at.dx * size.width, text.at.dy * size.height,
+      painter.width, painter.height);
+}
+
+/// Draws what the player put on the page, in page coordinates.
 ///
 /// Sizes come off the page rather than the screen - the painter lives inside PhotoView's
 /// transform, so a line drawn at one zoom has to be the same line at another.
-class _StrokePainter extends CustomPainter {
+class _MarkPainter extends CustomPainter {
   final List<Stroke> strokes;
+  final List<Annotation> texts;
 
-  const _StrokePainter(this.strokes);
+  const _MarkPainter(this.strokes, this.texts);
 
   @override
   void paint(Canvas canvas, Size size) {
+    _paintStrokes(canvas, size);
+    _paintTexts(canvas, size);
+  }
+
+  void _paintStrokes(Canvas canvas, Size size) {
     if (strokes.isEmpty) return;
 
     final double width = size.shortestSide * 0.006;
     final Paint line = Paint()
-      ..color = const Color(0xFFE53935)
+      ..color = _markColour
       ..strokeWidth = width
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
@@ -690,11 +859,158 @@ class _StrokePainter extends CustomPainter {
     }
   }
 
+  /// Each word on a white patch. Not decoration: red letters laid straight over a stave
+  /// are read as part of the music, and the one thing a written note must never be is
+  /// hard to tell from the print underneath.
+  void _paintTexts(Canvas canvas, Size size) {
+    if (texts.isEmpty) return;
+
+    final Paint patch = Paint()..color = const Color(0xF2FFFFFF);
+
+    for (final Annotation text in texts) {
+      final TextPainter painter = _layoutText(text, size);
+      final Rect box = Rect.fromLTWH(text.at.dx * size.width,
+          text.at.dy * size.height, painter.width, painter.height);
+      final double pad = painter.height * 0.12;
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(box.inflate(pad), Radius.circular(pad * 1.6)),
+        patch,
+      );
+      painter.paint(canvas, box.topLeft);
+    }
+  }
+
   Offset _at(Offset point, Size size) =>
       Offset(point.dx * size.width, point.dy * size.height);
 
-  /// The stroke list is mutated in place while drawing, so identity says nothing about
-  /// whether it changed. Repaints only happen on setState anyway.
+  /// The lists are mutated in place while drawing, so identity says nothing about
+  /// whether they changed. Repaints only happen on setState anyway.
   @override
-  bool shouldRepaint(_StrokePainter oldDelegate) => true;
+  bool shouldRepaint(_MarkPainter oldDelegate) => true;
+}
+
+/// What came back from the little dialog: a word and how big, or the decision to take it
+/// off the page again.
+class _TextEdit {
+  const _TextEdit({required this.text, required this.size, this.delete = false});
+
+  final String text;
+  final double size;
+  final bool delete;
+}
+
+/// Writing a word, and changing one.
+///
+/// A dialog rather than typing onto the page itself: a phone keyboard covers half the
+/// screen, so the spot being written at would be hidden by the act of writing at it. The
+/// tap decides where; this decides what.
+class _TextDialog extends StatefulWidget {
+  const _TextDialog({this.existing});
+
+  final Annotation? existing;
+
+  @override
+  State<_TextDialog> createState() => _TextDialogState();
+}
+
+class _TextDialogState extends State<_TextDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.existing?.text ?? '');
+  late double _size = widget.existing?.size ?? Annotation.defaultSize;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// An emptied word is a deleted word - that is what rubbing out the letters means, and
+  /// it saves hunting for a button.
+  void _done() {
+    final String text = _controller.text.trim();
+
+    if (text.isEmpty) {
+      Navigator.pop(
+          context,
+          widget.existing == null
+              ? null
+              : const _TextEdit(text: '', size: 0, delete: true));
+      return;
+    }
+    Navigator.pop(context, _TextEdit(text: text, size: _size));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final double preview =
+        16 + (_size - Annotation.minSize) / (Annotation.maxSize - Annotation.minSize) * 26;
+
+    return AlertDialog(
+      title: Text(widget.existing == null ? 'Text schreiben' : 'Text ändern'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.done,
+            maxLength: 60,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _done(),
+            decoration: const InputDecoration(
+              hintText: 'z. B. 2x, Achtung, leise, Fine',
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.format_size, size: 16, color: scheme.onSurfaceVariant),
+              Expanded(
+                child: Slider(
+                  value: _size,
+                  min: Annotation.minSize,
+                  max: Annotation.maxSize,
+                  onChanged: (value) => setState(() => _size = value),
+                ),
+              ),
+              Icon(Icons.format_size, size: 24, color: scheme.onSurfaceVariant),
+            ],
+          ),
+          Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: Text(
+              _controller.text.trim().isEmpty ? 'Vorschau' : _controller.text.trim(),
+              style: _writtenStyle(preview),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        if (widget.existing != null)
+          TextButton(
+            onPressed: () => Navigator.pop(
+                context, const _TextEdit(text: '', size: 0, delete: true)),
+            child: Text('Löschen', style: TextStyle(color: scheme.error)),
+          ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        TextButton(onPressed: _done, child: const Text('Fertig')),
+      ],
+    );
+  }
 }

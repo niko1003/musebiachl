@@ -89,10 +89,7 @@ class _CollectionSelectionPageState extends State<CollectionSelectionPage> {
       }
       setState(() => isLoaded = true);
       if (cached != null) return; // offline, and the list is already on screen
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: ${e.toString()}'),
-        backgroundColor: Colors.red.shade300,
-      ));
+      showError(context, 'Error: ${e.toString()}');
       selections = [];
     }
 

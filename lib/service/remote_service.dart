@@ -345,7 +345,7 @@ class RemoteServices {
     final String body = await _put(
       '$baseUrl/app/drawing/${drawing.imageId}',
       {
-        'strokes': strokesToJson(drawing.strokes),
+        'strokes': marksToJson(drawing.strokes, drawing.texts),
         'imageRevision': drawing.imageRevision,
       },
       const Duration(seconds: 10),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musebiachl/model/api/auth_token.dart';
 import 'package:musebiachl/service/remote_service.dart';
+import 'package:musebiachl/theme.dart';
 import 'package:musebiachl/view/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -65,10 +66,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: ${e.toString()}'),
-        backgroundColor: Colors.red.shade300,
-      ));
+      showError(context, 'Error: ${e.toString()}');
     }
   }
 
@@ -97,16 +95,15 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.music_note, size: 56, color: scheme.primary),
-                  const SizedBox(height: 12),
+                  // The Vereinslogo rather than a Material note glyph: this is the one
+                  // screen with room for it, and the one moment where saying whose
+                  // Noten these are is the whole message.
+                  const Center(child: BrandLogo(width: 200)),
+                  const SizedBox(height: 24),
                   Text(
                     'Muse Biachl',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: scheme.onSurface,
-                    ),
+                    style: Theme.of(context).textTheme.displaySmall,
                   ),
                   const SizedBox(height: 4),
                   Text(

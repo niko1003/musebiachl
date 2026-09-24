@@ -8,6 +8,53 @@ field in `pubspec.yaml` (`<semver>+<build number>`).
 Dates before 1.7.0 are reconstructed from git history, so older entries summarise what
 the commits show rather than what was released as a formal changelog at the time.
 
+## [1.14.0+31] — 2026-09-24
+
+Works against any server the 1.12.0 app works against.
+
+### Changed
+- **The app wears the Verein's corporate design.** Green `#0A8B31`, brown `#493936` as the
+  text colour, Noto Serif SemiBold for headings and Fira Sans for everything that is read
+  — the Grafikerin's guide, applied rather than approximated. Both fonts are bundled, so
+  the app looks the same on every phone.
+
+  The dark theme keeps it: a near-black brown ground from the same family instead of
+  Material's grey-violet, and a lightened green, because the logo's green on black is not
+  something to read a Stimme by.
+
+  The login screen shows the Vereinslogo — the colour version, or the negative one on a
+  dark phone, which keeps the flower green and whitens only the writing.
+
+- **A new app icon**: the flower of the Vereinslogo, white on the corporate green, with a
+  proper Android adaptive icon so the launcher can mask it to whatever shape it likes. The
+  old blue book with the tuba is gone.
+
+- Green now means the Verein, so it could no longer also mean "not opened yet": in a Mappe
+  the numbered circle is neutral until a piece has been opened on this phone, and green
+  afterwards. It used to be the other way round.
+
+### Added
+- **Text auf der Seite.** Besides the pencil there is now a *Text* tool: tap the page and
+  write a word — *2x*, *Achtung*, *leise*, a bar number. Tap a word to change it, drag it
+  to move it, empty it to delete it, and the eraser lifts it whole like a stroke.
+
+  Because nobody finger-writes legibly on a phone, and half of what a musician puts on
+  paper is a word rather than a line.
+
+  Words behave like strokes in every other respect: private to the player, tied to the
+  page and its revision, written to the device on every change and sent up at the next
+  pause — so one written in a rehearsal room with no signal is not lost and cannot be
+  overwritten by the server's older copy.
+
+### Notes
+- The annotation payload went from `{"v":1,…}` to `{"v":2,…}`, with the words in a new
+  `texts` key beside `strokes`. **No server change and no migration**: that column has
+  always been opaque to the backend, and an older app reads the strokes and ignores the
+  rest.
+- `test/brand/brand_sampler_test.dart` renders the whole palette and both typefaces to
+  `test/brand/goldens/` — the only way to look at the design on a machine with no device.
+  Re-run it with `flutter test --update-goldens test/brand` after touching `theme.dart`.
+
 ## [1.13.0+30] — 2026-09-24
 
 Works against any server the 1.12.0 app works against.
