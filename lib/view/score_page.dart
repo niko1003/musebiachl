@@ -583,7 +583,7 @@ class _ScorePageState extends State<ScorePage> {
                   children: [
                     Icon(Icons.arrow_back, size: 18),
                     SizedBox(width: 4),
-                    Text('Zurück'),
+                    Text('Zurück', style: TextStyle(fontFamily: bodyFont)),
                   ],
                 ),
               ),
@@ -646,7 +646,8 @@ class _ScorePageState extends State<ScorePage> {
                   ),
                   child: const Text(
                     'Seite wurde geändert — alte Zeichnung ausgeblendet',
-                    style: TextStyle(color: Colors.white, fontSize: 11),
+                    style: TextStyle(
+                        fontFamily: bodyFont, color: Colors.white, fontSize: 11),
                   ),
                 ),
               ),
@@ -667,7 +668,8 @@ class _ScorePageState extends State<ScorePage> {
                   ),
                   child: const Text(
                     'Tippen schreibt · auf ein Wort tippen ändert es · ziehen verschiebt',
-                    style: TextStyle(color: Colors.white, fontSize: 11),
+                    style: TextStyle(
+                        fontFamily: bodyFont, color: Colors.white, fontSize: 11),
                   ),
                 ),
               ),
@@ -712,7 +714,8 @@ class _ScorePageState extends State<ScorePage> {
                       TextButton(
                         onPressed: _toggleDrawing,
                         child: const Text('Fertig',
-                            style: TextStyle(color: Colors.white)),
+                            style: TextStyle(
+                                fontFamily: bodyFont, color: Colors.white)),
                       ),
                     ],
                   ),
@@ -757,7 +760,7 @@ class _ScorePageState extends State<ScorePage> {
                       Text(
                         'Seite ${current + 1} / $count',
                         style: const TextStyle(
-                            color: Colors.white, fontSize: 12),
+                            fontFamily: bodyFont, color: Colors.white, fontSize: 12),
                       ),
                     ],
                   ),
@@ -781,6 +784,7 @@ class _ScorePageState extends State<ScorePage> {
           size: 18, color: active ? Colors.amber.shade400 : Colors.white),
       label: Text(label,
           style: TextStyle(
+              fontFamily: bodyFont,
               color: active ? Colors.amber.shade400 : Colors.white,
               fontSize: 12)),
     );
