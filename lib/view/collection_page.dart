@@ -54,8 +54,6 @@ class _Booklet {
   final List<_Piece> pieces = [];
 
   _Booklet(this.label);
-
-  int get pages => pieces.fold(0, (sum, piece) => sum + piece.pages);
 }
 
 /// A Sammlung as one of its lines reads it.
@@ -295,7 +293,7 @@ class _CollectionPage extends State<CollectionPage> {
       leading: Icon(Icons.menu_book_outlined, color: scheme.primary),
       title: Text(booklet.label, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(
-          '${booklet.pieces.length} ${booklet.pieces.length == 1 ? 'Stück' : 'Stücke'} · ${booklet.pages} Seiten'),
+          '${booklet.pieces.length} ${booklet.pieces.length == 1 ? 'Stück' : 'Stücke'}'),
       children: booklet.pieces
           .map((piece) => _tile(piece, scheme, inset: true))
           .toList(),
