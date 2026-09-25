@@ -36,13 +36,16 @@ import 'package:musebiachl/view/score_page.dart';
 void main() {
   const String username = 'anna';
 
-  /// Play wants 16:9 at most; Apple wants exactly 1290x2796 for the 6.7" iPhone set,
-  /// 1284x2778 for the 6.5" one (which App Store Connect insists on when it is the only
-  /// iPhone slot offered) and 2048x2732 for the 13" iPad - and it wants the iPad set
-  /// because the Runner targets device family "1,2", so the app is universal whether or
-  /// not anyone plays off one.
+  /// Play wants 16:9 or 9:16 and nothing else, with each side between 320 and 3840 - for
+  /// the tablet slots too, which is why the tablet set is 1620x2880 rather than a real
+  /// tablet's 16:10. Both of Play's tablet slots, 7-inch and 10-inch, take that one set.
+  /// Apple wants exactly 1290x2796 for the 6.7" iPhone set, 1284x2778 for the 6.5" one
+  /// (which App Store Connect insists on when it is the only iPhone slot offered) and
+  /// 2048x2732 for the 13" iPad - and it wants the iPad set because the Runner targets
+  /// device family "1,2", so the app is universal whether or not anyone plays off one.
   const Map<String, ({Size size, double ratio})> devices = {
     'android-1080x1920': (size: Size(1080, 1920), ratio: 2.75),
+    'android-tablet-1620x2880': (size: Size(1620, 2880), ratio: 2.0),
     'ios-1290x2796': (size: Size(1290, 2796), ratio: 3.0),
     'ios-1284x2778': (size: Size(1284, 2778), ratio: 3.0),
     'ipad-2048x2732': (size: Size(2048, 2732), ratio: 2.0),
