@@ -75,6 +75,11 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
   final Map<int, Size> _imageSizes = {};
   final Set<int> _sizeRequested = {};
 
+  /// Pages whose image could not be loaded - no signal and never downloaded, usually.
+  /// They render a message and a retry instead of the spinner, because the spinner
+  /// never ends: nothing retries by itself.
+  final Set<int> _failedSizes = {};
+
   /// The marks, per image id. Mutated in place while drawing.
   final Map<int, List<Stroke>> _strokes = {};
 
@@ -111,6 +116,12 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
 
     persistFile(widget.imageIds[current]);
     _loadDrawings();
+
+    // The neighbours of the opening page, fetched while it is on the stand - see
+    // _precacheAround. precacheImage needs a context, so it waits for the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _precacheAround(current);
+    });
   }
 
   @override
@@ -434,10 +445,26 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
     );
   }
 
+  /// The pages either side, fetched while the current one is on the stand.
+  ///
+  /// PhotoViewGallery only creates a page's provider as the swipe begins, so without
+  /// this the first read-through of a part that was never downloaded showed a spinner
+  /// on every page turn - during the piece. A failure here is no event: the page will
+  /// ask again when it is actually opened.
+  void _precacheAround(int index) {
+    for (final int neighbour in [index + 1, index - 1]) {
+      if (neighbour < 0 || neighbour >= widget.imageIds.length) continue;
+      precacheImage(imageOf(neighbour), context, onError: (_, _) {});
+    }
+  }
+
   /// The page's pixel size, which PhotoView needs as childSize and the pencil needs as
   /// its coordinate system. Requested from the builder rather than up front so that
   /// opening a four-page part does not decode four scans at once.
   void _ensureSize(int index, int imageId) {
+    // A failed page waits for the retry button; asking again from build() would loop,
+    // because a cached failure answers synchronously with the same error.
+    if (_failedSizes.contains(imageId)) return;
     if (_imageSizes.containsKey(imageId) || !_sizeRequested.add(imageId)) return;
 
     final ImageStream stream =
@@ -456,6 +483,12 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
 
       if (size == null) {
         _sizeRequested.remove(imageId);
+        // Make the failure visible: without this the builder shows its spinner for
+        // ever, which in a rehearsal room with no signal is exactly the wrong answer.
+        Future.microtask(() {
+          if (!mounted) return;
+          setState(() => _failedSizes.add(imageId));
+        });
         return;
       }
 
@@ -474,6 +507,53 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
     stream.addListener(listener);
   }
 
+  /// The rehearsal-room dead end, made visible: a page with no cached copy and no
+  /// signal used to spin for ever. Say what happened and offer the retry by hand -
+  /// nothing retries by itself, and the next attempt is free once the signal is back.
+  Widget _failedPage(int index, int imageId) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off, color: Colors.white54, size: 48),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              'Seite nicht geladen — kein Netz?',
+              style: TextStyle(color: Colors.white, fontFamily: bodyFont),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            style: ButtonStyle(
+              backgroundColor:
+                  WidgetStateProperty.all(Colors.white.withValues(alpha: 0.8)),
+              foregroundColor: WidgetStateProperty.all(Colors.black),
+            ),
+            onPressed: () => _retryPage(index, imageId),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Nochmal versuchen',
+                style: TextStyle(fontFamily: bodyFont)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The failed resolve is remembered by Flutter's image cache, so it has to be
+  /// evicted or the retry answers instantly with the same failure.
+  Future<void> _retryPage(int index, int imageId) async {
+    await imageOf(index).evict();
+    if (!mounted) return;
+    setState(() {
+      _failedSizes.remove(imageId);
+      _sizeRequested.remove(imageId);
+      // build() runs again and _ensureSize starts over for this page.
+    });
+  }
+
   Widget _page(int index, int imageId, Size size) {
     return SizedBox(
       width: size.width,
@@ -486,6 +566,7 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
             fit: BoxFit.fill,
             gaplessPlayback: true,
             filterQuality: FilterQuality.medium,
+            errorBuilder: (context, error, stack) => _failedPage(index, imageId),
           ),
           CustomPaint(
             painter: _MarkPainter(
@@ -568,6 +649,7 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
                 setState(() => current = index);
                 persistFile(widget.imageIds[index]);
                 _pushAll();
+                _precacheAround(index);
               },
               backgroundDecoration: const BoxDecoration(color: Colors.black),
               builder: (context, index) {
@@ -577,9 +659,12 @@ class _ScorePageState extends State<ScorePage> with WidgetsBindingObserver {
 
                 if (size == null) {
                   return PhotoViewGalleryPageOptions.customChild(
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    ),
+                    child: _failedSizes.contains(imageId)
+                        ? _failedPage(index, imageId)
+                        : const Center(
+                            child:
+                                CircularProgressIndicator(color: Colors.white),
+                          ),
                     disableGestures: true,
                   );
                 }
